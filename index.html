@@ -11,7 +11,7 @@
   header{background:var(--brand);color:#fff;padding:14px 18px}
   header h1{margin:0;font-size:18px}
   header p{margin:4px 0 0;font-size:12.5px;opacity:.9}
-  main{max-width:1050px;margin:0 auto;padding:16px}
+  main{max-width:1100px;margin:0 auto;padding:16px}
   .drop{background:var(--card);border:2px dashed var(--line);border-radius:12px;padding:22px;text-align:center;cursor:pointer;transition:.15s}
   .drop:hover,.drop.hot{border-color:var(--brand);background:#f0f6fc}
   .drop b{color:var(--brand)}
@@ -33,9 +33,13 @@
   .c-hi{background:var(--ok)}.c-md{background:var(--warn)}.c-lo{background:var(--bad)}
   .idline{font:600 13px ui-monospace,Consolas,monospace;background:var(--chip);border-radius:6px;padding:6px 8px;margin-top:6px;word-break:break-all}
   .flag{background:#fff6e5;border:1px solid #f0d089;color:#7a5a00;border-radius:8px;padding:8px 10px;margin-top:8px;font-size:13px}
+  .retake{background:#fdecef;border:1px solid #f0a9b8;color:var(--bad);border-radius:8px;padding:8px 10px;margin-top:8px;font-size:13px;font-weight:700}
   .alt{font-size:12.5px;color:var(--mut);margin-top:6px}
   textarea{width:100%;min-height:80px;border:1px solid var(--line);border-radius:8px;padding:8px;font:12.5px ui-monospace,Consolas,monospace;resize:vertical}
-  input.f{border:1px solid var(--line);border-radius:6px;padding:4px 6px;font:inherit}
+  .locbar{background:var(--card);border:1px solid var(--line);border-radius:12px;margin-top:12px;padding:10px 14px;display:flex;gap:10px;flex-wrap:wrap;align-items:center}
+  .locbar b{font-size:13px}
+  .locbar select,.locbar input{border:1px solid var(--line);border-radius:8px;padding:6px 8px;font:inherit}
+  .locbar .now{font-weight:700;color:var(--brand)}
   .mini{font-size:12px;padding:4px 9px}
   .status{font-size:12.5px;color:var(--mut);min-height:16px}
   details{margin-top:16px;background:var(--card);border:1px solid var(--line);border-radius:12px;padding:12px 14px}
@@ -50,11 +54,17 @@
   #reg{background:var(--card);border:1px solid var(--line);border-radius:12px;margin-top:16px;padding:12px 14px}
   #reg h2{margin:0;font-size:16px;display:flex;align-items:center;gap:8px}
   #reg .badge{background:var(--brand);color:#fff;border-radius:20px;font-size:12px;padding:1px 9px}
-  #regtbl img{width:56px;height:56px;object-fit:cover;border-radius:6px;background:#0d151d}
+  .summary{margin-top:10px;padding:10px 12px;border-radius:10px;font-size:13px;border:1px solid var(--line);background:var(--chip)}
+  .summary.warn{background:#fdecef;border-color:#f0a9b8}
+  .summary b{color:var(--ink)}
+  #regtbl img{width:64px;height:64px;object-fit:cover;border-radius:6px;background:#0d151d;cursor:zoom-in}
   #regtbl td .art{font:600 12.5px ui-monospace,Consolas,monospace;color:var(--brand);word-break:break-all}
-  #regtbl td .idn{font:12px ui-monospace,Consolas,monospace;color:var(--ink);word-break:break-all}
-  #regtbl input{width:100%;border:1px solid var(--line);border-radius:6px;padding:3px 5px;font:inherit}
-  #regtbl input.qty{width:52px;text-align:center}
+  #regtbl input,#regtbl select{width:100%;border:1px solid var(--line);border-radius:6px;padding:3px 5px;font:inherit}
+  #regtbl input.qty{width:50px;text-align:center}
+  #regtbl input.sn{font:12px ui-monospace,Consolas,monospace;min-width:150px}
+  #regtbl tr.bad td{background:#fdecef}
+  #regtbl .st-ok{color:var(--ok);font-weight:700}
+  #regtbl .st-bad{color:var(--bad);font-weight:700}
   .x{color:var(--bad);cursor:pointer;font-weight:700;border:none;background:none;font-size:16px}
   .empty{color:var(--mut);font-size:13px;padding:8px 0}
 </style>
@@ -62,9 +72,17 @@
 <body>
 <header>
   <h1>AirTrunk OSE — Label Identifier</h1>
-  <p>Photograph a goods label → it reads the text, gives its best guess at the article number, and keeps a running register you can export. Reads in your browser; the register is saved on this device.</p>
+  <p>Photograph a goods label → it reads the S/N and article, keeps a running register (with readable photos), and exports data ready for the Ongoing serial update. Reads in your browser; saved on this device.</p>
 </header>
 <main>
+  <div class="locbar">
+    <b>📍 Current location:</b>
+    <select id="loc"><option value="">— pick —</option></select>
+    <input id="locFree" type="text" placeholder="extra note (bay / row)" size="16">
+    <span class="muted">stamped on every new photo →</span>
+    <span class="now" id="locNow">not set</span>
+  </div>
+
   <div id="drop" class="drop">
     <div style="font-size:30px">📷</div>
     <div><b>Click to choose / take photos</b> or drag &amp; drop</div>
@@ -92,10 +110,11 @@
   <!-- Register -->
   <section id="reg">
     <h2>📋 Register <span class="badge" id="regCount">0</span></h2>
+    <div id="regSummary"></div>
     <div class="row" style="margin-top:8px">
-      <button class="primary mini" id="expCsv">⬇ Export CSV</button>
-      <button class="primary mini" id="expReport">⬇ Export report (with photos)</button>
-      <button class="mini" id="expJson">⬇ Backup (JSON)</button>
+      <button class="primary mini" id="expCsv">⬇ CSV (for Ongoing)</button>
+      <button class="primary mini" id="expReport">⬇ Report (readable photos)</button>
+      <button class="mini" id="expJson">⬇ Data (JSON)</button>
       <button class="mini" id="clearReg" style="margin-left:auto">🗑 Clear register</button>
     </div>
     <div id="regBody"></div>
@@ -106,7 +125,7 @@
     <table id="kbtable"><thead><tr><th>Piece</th><th>Article number</th><th>Vendor</th><th>Label clues</th></tr></thead><tbody></tbody></table>
     <div class="muted" style="margin-top:8px">⚠ = not yet in the Ongoing article master.</div>
   </details>
-  <p class="muted" style="margin-top:14px">Best‑effort. Confirm serialised items (FWU/GEN/KTX) by the serial on the plate. Register is stored only in this browser — export to keep a copy. Issues → Tom (tnix@bws.dk).</p>
+  <p class="muted" style="margin-top:14px">Best‑effort. The S/N is the identifying number (never the bare P/N). FWUs ship as 2 packages sharing one S/N — photograph both the <b>1/2 Lower</b> and <b>2/2 Upper</b> stickers. Register is stored only in this browser — export to keep a copy. Issues → Tom (tnix@bws.dk).</p>
 </main>
 
 <script src="https://cdn.jsdelivr.net/npm/tesseract.js@5.1.1/dist/tesseract.min.js"></script>
@@ -137,7 +156,7 @@ const NOT_LOADED = [
 ];
 const ARTICLES = [
   {art:"FWU400_V02_VER_1_A", name:"400kW Fan Wall Unit (AHU)", vendor:"Vertiv",
-   rules:[{re:/FA119HCZV1/i,w:100},{re:/F0146283/i,w:85},{re:/\d{2}F0146283/i,w:85},{kw:["FAN WALL"],w:60},{kw:["AHU"],w:25},{kw:["VERTIV"],w:12}]},
+   rules:[{re:/FA119HCZV1/i,w:100},{re:/21F0146283/i,w:95},{re:/F0146283/i,w:85},{kw:["FAN WALL"],w:60},{kw:["AHU"],w:25},{kw:["VERTIV"],w:12}]},
   {art:"GEN2000_V01_CUM_16", name:"2000kW Generator (Cummins)", vendor:"Cummins",
    rules:[{re:/SK8E-?001/i,w:90},{kw:["ACOUSTIC GENSET"],w:80},{kw:["GENSET"],w:45},{kw:["CUMMINS"],w:40},{re:/\b[A-Z]\d{2}H\d{6}\b/,w:45},{kw:["GENERATOR"],w:20}]},
   {art:"KTX2250_V01_SCH_58", name:"2250kW MV/LV Kiosk Substation / Transformer", vendor:"Schneider",
@@ -159,90 +178,229 @@ const ARTICLES = [
   {art:"HRU3200_V01_BAC_26_A", name:"3850kW Hybrid Dry Cooler (HDC)", vendor:"BAC (Baltimore Aircoil)",
    rules:[{re:/HXV[-\s]?\d/i,w:95},{re:/\b55606\b/,w:70},{kw:["HYBRID DRY","DRY COOLER"],w:70},{kw:["BALTIMORE","BAC"],w:25}]},
 ];
+/* Full SERIAL numbers per family. FWU verified against 21F01462832261050004 / ...630B0001 / ...630D0001
+   (20 chars: 21F + 12 digits + 1 alnum + 4 digits — note the letter can sit in the alnum slot). */
+const SERIAL_RX = {
+  "FWU400_V02_VER_1_A": /21F\d{12}[0-9A-Z]\d{4}/,
+  "GEN2000_V01_CUM_16": /[A-Z]\d{2}H\d{6}/,
+  "KTX2250_V01_SCH_58": /AC\d{9,10}/
+};
+const SERIAL_REQUIRED = new Set(Object.keys(SERIAL_RX));
+/* Secondary identifiers (for components / non-serialised items). NO bare P/N here. */
 const ID_PATTERNS = [
-  {label:"Fan Wall Unit serial", re:/\b\d{2}F0146283[A-Z0-9]{4,}\b/i},
-  {label:"Generator genset serial", re:/\b[A-Z]\d{2}H\d{6}\b/},
-  {label:"Kiosk enclosure serial", re:/\bAC\s?\d{9,10}\b/i},
   {label:"HDC vendor model", re:/HXV[-\s]?[A-Z0-9][A-Z0-9\-]{4,}/i},
   {label:"HDC factory no.", re:/\b55606\/\d+\b/},
   {label:"Schneider Canalis catalog", re:/\bKS[AB]\s?\d{2,4}\s?[A-Z0-9][A-Z0-9\/\-]{2,}/i},
   {label:"3200A busway part code", re:/\b(?:BFC|BRC)\s?2532[A-Z0-9]{4,}\b/i},
-  {label:"Vertiv part no.", re:/\bF0146283\b/i},
-  {label:"Vendor order code (SK8E)", re:/\bSK8E-?[0-9\-]+\b/i},
-  {label:"Box / pack tracking no.", re:/\b2022\d{6,}\b/},
 ];
 
 /* ---------------- Matcher ---------------- */
 const up=s=>(s||"").toUpperCase(), squish=s=>up(s).replace(/[^A-Z0-9./-]/g,"");
 function testRule(r,raw,sq){ if(r.re) return (r.re.test(raw)||r.re.test(sq))?r.w:0; if(r.kw) return r.kw.some(k=>up(raw).includes(up(k)))?r.w:0; return 0; }
-function extractIds(raw){ const out=[],seen=new Set(); for(const p of ID_PATTERNS){const m=raw.match(p.re); if(m){const v=m[0].replace(/\s+/g,"").trim(); if(!seen.has(v)){seen.add(v);out.push({label:p.label,val:v});}}} return out; }
 function identify(text){
   const raw=text||"", sq=squish(raw);
-  for(const c of NOT_LOADED){ if(c.re.test(raw)||c.re.test(sq)) return {kind:"exact",art:c.art,name:c.name,parent:c.parent,conf:95,flag:c.flag,ids:extractIds(raw)}; }
-  for(const c of COMPONENTS){ if(c.re.test(raw)||c.re.test(sq)) return {kind:"exact",art:c.art,name:c.name,parent:c.parent,conf:96,ids:extractIds(raw)}; }
+  for(const c of NOT_LOADED){ if(c.re.test(raw)||c.re.test(sq)) return {kind:"exact",art:c.art,name:c.name,parent:c.parent,conf:95,flag:c.flag}; }
+  for(const c of COMPONENTS){ if(c.re.test(raw)||c.re.test(sq)) return {kind:"exact",art:c.art,name:c.name,parent:c.parent,conf:96}; }
   let s=ARTICLES.map(a=>({a,s:a.rules.reduce((t,r)=>t+testRule(r,raw,sq),0)})).filter(x=>x.s>0).sort((x,y)=>y.s-x.s);
-  if(!s.length) return {kind:"none",ids:extractIds(raw)};
+  if(!s.length) return {kind:"none"};
   const best=s[0], conf=Math.max(20,Math.min(97,best.s));
   const alts=s.slice(1,3).filter(x=>x.s>=20).map(x=>x.a.art);
-  return {kind:"family",art:best.a.art,name:best.a.name,vendor:best.a.vendor,conf,alts,ids:extractIds(raw)};
+  return {kind:"family",art:best.a.art,name:best.a.name,vendor:best.a.vendor,conf,alts};
 }
-const primaryId=r=>(r.ids&&r.ids.length)?r.ids[0].val:"";
+/* Full serial only — never the bare P/N. Tries the identified family's pattern first, then any. */
+function findSerial(raw, art){
+  const sq=squish(raw);
+  const tryRx=rx=>{ let m=sq.match(rx); if(!m&&raw) m=raw.toUpperCase().match(rx); return m?m[0].replace(/\s+/g,"").toUpperCase():""; };
+  if(art&&SERIAL_RX[art]){ const s=tryRx(SERIAL_RX[art]); if(s) return s; }
+  for(const k in SERIAL_RX){ const s=tryRx(SERIAL_RX[k]); if(s) return s; }
+  return "";
+}
+/* Secondary id for components (catalog code etc.) */
+function otherId(raw){ const sq=squish(raw); for(const p of ID_PATTERNS){ const m=(raw||"").match(p.re)||sq.match(p.re); if(m) return m[0].replace(/\s+/g,""); } return ""; }
+/* 1/2 Lower vs 2/2 Upper section sticker */
+function detectSection(raw){ const u=up(raw); if(/2\s*\/\s*2/.test(raw)||/UPPER\s*SECTION/.test(u)) return "Upper (2/2)"; if(/1\s*\/\s*2/.test(raw)||/LOWER\s*SECTION/.test(u)) return "Lower (1/2)"; return ""; }
+function analyze(text){
+  const r=identify(text);
+  const art=(r.kind==="none")?"(unidentified)":r.art;
+  const serial=findSerial(text, art);
+  const other=serial?"":otherId(text);
+  const needsRetake=(art==="(unidentified)")||(SERIAL_REQUIRED.has(art)&&!serial);
+  return {r,art,name:r.name||"",vendor:r.vendor||"",serial,other,conf:(r.kind==="none"?null:r.conf),needsRetake,flag:!!r.flag,alts:r.alts||[],section:detectSection(text)};
+}
+function retakeReason(it){
+  if(it.art==="(unidentified)") return "Unreadable — retake photo";
+  if(it.art==="FWU400_V02_VER_1_A") return "S/N NOT READ — retake photo";
+  if(SERIAL_REQUIRED.has(it.art)) return "Serial not read — retake photo";
+  return "";
+}
+
+/* ---------------- Big-image store (IndexedDB + session cache) ---------------- */
+const BIG={};                       // rid -> full-res dataURL (this session)
+const IDB_NAME="atr_imgs", IDB_STORE="imgs";
+function idbOpen(){ return new Promise((res,rej)=>{ try{ const rq=indexedDB.open(IDB_NAME,1); rq.onupgradeneeded=()=>rq.result.createObjectStore(IDB_STORE); rq.onsuccess=()=>res(rq.result); rq.onerror=()=>rej(rq.error);}catch(e){rej(e);} }); }
+async function idbPut(k,v){ try{ const db=await idbOpen(); await new Promise((res,rej)=>{ const t=db.transaction(IDB_STORE,"readwrite"); t.objectStore(IDB_STORE).put(v,k); t.oncomplete=res; t.onerror=()=>rej(t.error);}); }catch(e){} }
+async function idbGet(k){ try{ const db=await idbOpen(); return await new Promise(res=>{ const t=db.transaction(IDB_STORE,"readonly"); const rq=t.objectStore(IDB_STORE).get(k); rq.onsuccess=()=>res(rq.result||null); rq.onerror=()=>res(null);}); }catch(e){ return null; } }
+async function idbDel(k){ try{ const db=await idbOpen(); const t=db.transaction(IDB_STORE,"readwrite"); t.objectStore(IDB_STORE).delete(k);}catch(e){} }
+async function idbClear(){ try{ const db=await idbOpen(); const t=db.transaction(IDB_STORE,"readwrite"); t.objectStore(IDB_STORE).clear();}catch(e){} }
+async function bigFor(rid){ if(BIG[rid]) return BIG[rid]; const v=await idbGet(rid); if(v){BIG[rid]=v; return v;} return null; }
 
 /* ---------------- Register (persisted) ---------------- */
-const LS="atr_register_v1";
+const LS="atr_register_v2";
 let REG=[]; try{REG=JSON.parse(localStorage.getItem(LS)||"[]");}catch(e){REG=[];}
-function saveReg(){ try{localStorage.setItem(LS,JSON.stringify(REG));}catch(e){alert("Couldn't save register (storage full). Export and clear.");} }
+function saveReg(){ try{localStorage.setItem(LS,JSON.stringify(REG));}catch(e){alert("Couldn't save register (device storage full). Export now and clear.");} }
 function nowStr(){ const d=new Date(); const p=n=>String(n).padStart(2,"0"); return d.getFullYear()+"-"+p(d.getMonth()+1)+"-"+p(d.getDate())+" "+p(d.getHours())+":"+p(d.getMinutes()); }
-function addToRegister(item){ REG.push(item); saveReg(); renderReg(); }
+function esc(s){return String(s==null?"":s).replace(/&/g,"&amp;").replace(/</g,"&lt;").replace(/>/g,"&gt;").replace(/"/g,"&quot;");}
+const SECTION_OPTS=["","Lower (1/2)","Upper (2/2)"];
+
+function upsertRegister(rid, data, createDefaults){
+  let it=REG.find(x=>x._rid===rid);
+  if(it){ Object.assign(it,data); }
+  else { it=Object.assign({_rid:rid,ts:nowStr(),qty:1,section:"",location:""}, createDefaults||{}, data); REG.push(it); }
+  saveReg(); renderReg();
+}
+
+/* Group into units: rows sharing a S/N are one unit (FWU = 2 packages, one S/N). */
+function buildUnits(){
+  const map=new Map();
+  REG.forEach(it=>{
+    const key=it.serial?("S:"+it.serial):("R:"+it._rid);
+    let u=map.get(key);
+    if(!u){ u={key,serial:it.serial||"",art:it.art,name:it.name,sections:new Set(),locations:new Set(),rows:[],conf:0,needs_retake:false}; map.set(key,u); }
+    u.rows.push(it);
+    if(it.section) u.sections.add(it.section);
+    if(it.location) u.locations.add(it.location);
+    if((it.conf||0)>u.conf) u.conf=it.conf||0;
+    if(it.needs_retake) u.needs_retake=true;
+    if((!u.art||u.art==="(unidentified)")&&it.art) u.art=it.art;
+    if(!u.name&&it.name) u.name=it.name;
+  });
+  const arr=[...map.values()];
+  arr.forEach(u=>{
+    u.isFWU=(u.art==="FWU400_V02_VER_1_A");
+    u.packages=u.rows.length;
+    u.missingSection=u.isFWU&&u.sections.size<2;
+    u.identified=(u.art&&u.art!=="(unidentified)");
+    u.fullyOK=u.identified && (!SERIAL_REQUIRED.has(u.art)||!!u.serial) && !u.needs_retake && !u.missingSection;
+    if(!u.fullyOK){
+      if(!u.identified) u.reason="Unidentified — retake photo";
+      else if(SERIAL_REQUIRED.has(u.art)&&!u.serial) u.reason=(u.isFWU?"S/N not read":"Serial not read")+" — retake";
+      else if(u.missingSection) u.reason="only "+([...u.sections][0]||"one section")+" photographed — need the other section";
+      else u.reason="needs attention";
+    }
+  });
+  return arr;
+}
+
 function renderReg(){
   document.getElementById("regCount").textContent=REG.length;
-  const body=document.getElementById("regBody");
-  if(!REG.length){ body.innerHTML='<div class="empty">Nothing logged yet — every photo you identify is saved here automatically, then Export.</div>'; return; }
-  let h='<div style="overflow-x:auto"><table id="regtbl"><thead><tr><th>#</th><th>Photo</th><th>Article no.</th><th>Description</th><th>Identifying no.</th><th>Conf.</th><th>Qty</th><th>Location / notes</th><th>Time</th><th></th></tr></thead><tbody>';
+  const body=document.getElementById("regBody"), sumBox=document.getElementById("regSummary");
+  if(!REG.length){ sumBox.innerHTML=""; body.innerHTML='<div class="empty">Nothing logged yet — every photo you identify is saved here automatically, then Export.</div>'; return; }
+  const units=buildUnits();
+  const ok=units.filter(u=>u.fullyOK).length, need=units.length-ok;
+  sumBox.innerHTML='<div class="summary'+(need?' warn':'')+'"><b>'+ok+' of '+units.length+'</b> units fully identified · <b>'+need+'</b> need attention'
+    +(need?' — '+units.filter(u=>!u.fullyOK).map(u=>esc((u.serial||u.art||"?"))+' ('+esc(u.reason)+')').join('; '):'')+'</div>';
+  let h='<div style="overflow-x:auto"><table id="regtbl"><thead><tr><th>#</th><th>Photo</th><th>Article no.</th><th>S/N (serial)</th><th>Section</th><th>Location</th><th>Qty</th><th>Conf.</th><th>Status</th><th>Time</th><th></th></tr></thead><tbody>';
   REG.forEach((r,i)=>{
-    h+='<tr>'
+    const bad=!!r.needs_retake;
+    const stat=bad?('<span class="st-bad">⚠ '+esc(retakeReason(r)||"retake")+'</span>'):'<span class="st-ok">✓ OK</span>';
+    const secSel='<select data-i="'+i+'" data-k="section">'+SECTION_OPTS.map(o=>'<option'+(o===(r.section||"")?' selected':'')+'>'+o+'</option>').join('')+'</select>';
+    h+='<tr class="'+(bad?'bad':'')+'">'
      +'<td>'+(i+1)+'</td>'
-     +'<td>'+(r.thumb?'<img src="'+r.thumb+'">':'<span class="muted">—</span>')+'</td>'
+     +'<td>'+(r.thumb?'<img src="'+r.thumb+'" data-big="'+r._rid+'" title="click to view full size">':'<span class="muted">typed</span>')+'</td>'
      +'<td><span class="art">'+esc(r.art||"?")+'</span>'+(r.flag?' ⚠':'')+'</td>'
-     +'<td>'+esc(r.name||"")+'</td>'
-     +'<td><span class="idn">'+esc(r.idnum||"")+'</span></td>'
-     +'<td>'+(r.conf!=null?r.conf+'%':'')+'</td>'
+     +'<td><input class="sn" type="text" value="'+esc(r.serial||"")+'" data-i="'+i+'" data-k="serial" placeholder="'+(SERIAL_REQUIRED.has(r.art)?'S/N NOT READ':'—')+'"></td>'
+     +'<td>'+secSel+'</td>'
+     +'<td><input type="text" value="'+esc(r.location||"")+'" data-i="'+i+'" data-k="location" placeholder="location"></td>'
      +'<td><input class="qty" type="number" min="0" value="'+(r.qty!=null?r.qty:1)+'" data-i="'+i+'" data-k="qty"></td>'
-     +'<td><input type="text" value="'+esc(r.notes||"")+'" data-i="'+i+'" data-k="notes" placeholder="e.g. bay / pallet / status"></td>'
+     +'<td>'+(r.conf!=null?r.conf+'%':'')+'</td>'
+     +'<td>'+stat+'</td>'
      +'<td class="muted">'+esc(r.ts||"")+'</td>'
-     +'<td><button class="x" title="remove" data-del="'+i+'">✕</button></td>'
+     +'<td><button class="x" title="remove" data-del="'+r._rid+'">✕</button></td>'
      +'</tr>';
   });
   h+='</tbody></table></div>';
   body.innerHTML=h;
-  body.querySelectorAll("input").forEach(inp=>inp.onchange=e=>{ const i=+e.target.dataset.i,k=e.target.dataset.k; REG[i][k]=(k==="qty")?(+e.target.value||0):e.target.value; saveReg(); });
-  body.querySelectorAll("[data-del]").forEach(b=>b.onclick=e=>{ REG.splice(+e.target.dataset.del,1); saveReg(); renderReg(); });
+  body.querySelectorAll("input,select").forEach(inp=>inp.onchange=e=>{
+    const i=+e.target.dataset.i,k=e.target.dataset.k;
+    if(k==="qty") REG[i].qty=(+e.target.value||0);
+    else if(k==="serial"){ REG[i].serial=e.target.value.trim().toUpperCase(); REG[i].needs_retake=(REG[i].art==="(unidentified)")||(SERIAL_REQUIRED.has(REG[i].art)&&!REG[i].serial); }
+    else REG[i][k]=e.target.value;
+    saveReg(); renderReg();
+  });
+  body.querySelectorAll("[data-del]").forEach(b=>b.onclick=e=>{ const rid=e.target.dataset.del; const ix=REG.findIndex(x=>x._rid===rid); if(ix>=0){ REG.splice(ix,1); idbDel(rid); delete BIG[rid]; saveReg(); renderReg(); } });
+  body.querySelectorAll("img[data-big]").forEach(im=>im.onclick=async e=>{ const big=await bigFor(e.target.dataset.big); if(big){ const w=window.open(); if(w) w.document.write('<img src="'+big+'" style="max-width:100%">'); } });
 }
-function esc(s){return String(s==null?"":s).replace(/&/g,"&amp;").replace(/</g,"&lt;").replace(/>/g,"&gt;").replace(/"/g,"&quot;");}
 
 /* ---------------- Exports ---------------- */
-function download(name,blob){ const a=document.createElement("a"); a.href=URL.createObjectURL(blob); a.download=name; a.click(); setTimeout(()=>URL.revokeObjectURL(a.href),4000); }
+function download(name,blob){ const a=document.createElement("a"); a.href=URL.createObjectURL(blob); a.download=name; document.body.appendChild(a); a.click(); a.remove(); setTimeout(()=>URL.revokeObjectURL(a.href),8000); }
 function stamp(){ const d=new Date(),p=n=>String(n).padStart(2,"0"); return d.getFullYear()+p(d.getMonth()+1)+p(d.getDate())+"-"+p(d.getHours())+p(d.getMinutes()); }
+function csvVal(v){ return '"'+String(v==null?"":v).replace(/"/g,'""')+'"'; }
+
+/* machine-readable rows for CSV + JSON (full S/N verbatim, no truncation) */
+function dataRows(){ return REG.map(r=>({article_number:(r.art==="(unidentified)"?"":r.art), serial:r.serial||"", section:sectionCode(r.section), location:r.location||"", qty:(r.qty!=null?r.qty:1), confidence:(r.conf!=null?r.conf:""), needs_retake:!!r.needs_retake, timestamp:r.ts||"", other_id:r.other||"", source:r.src||""})); }
+function sectionCode(s){ if(!s) return ""; if(/Upper/.test(s)) return "2/2 Upper"; if(/Lower/.test(s)) return "1/2 Lower"; return s; }
+
 function exportCSV(){
   if(!REG.length) return alert("Register is empty.");
-  const q=v=>'"'+String(v==null?"":v).replace(/"/g,'""')+'"';
-  const head=["#","Time","Article number","Description","Identifying number","Confidence %","Qty","Location / notes","Source file"];
-  const lines=[head.map(q).join(",")];
-  REG.forEach((r,i)=>lines.push([i+1,r.ts,r.art,r.name,r.idnum,r.conf,r.qty,r.notes,r.src].map(q).join(",")));
-  download("AirTrunk_label_register_"+stamp()+".csv", new Blob([lines.join("\r\n")],{type:"text/csv"}));
+  const cols=["article_number","serial","section","location","qty","confidence","needs_retake","timestamp"];
+  const lines=[cols.join(",")];
+  dataRows().forEach(r=>lines.push(cols.map(c=>csvVal(c==="needs_retake"?(r[c]?"YES":"no"):r[c])).join(",")));
+  download("AirTrunk_serials_"+stamp()+".csv", new Blob([lines.join("\r\n")],{type:"text/csv"}));
 }
-function exportJSON(){ if(!REG.length) return alert("Register is empty."); download("AirTrunk_label_register_"+stamp()+".json", new Blob([JSON.stringify(REG,null,2)],{type:"application/json"})); }
-function exportReport(){
+function jsonPayload(){
+  const units=buildUnits().map(u=>({serial:u.serial,article_number:(u.art==="(unidentified)"?"":u.art),name:u.name,packages_seen:u.packages,sections:[...u.sections].map(sectionCode),locations:[...u.locations],fully_identified:u.fullyOK,need_action:!u.fullyOK,reason:u.reason||""}));
+  return {generated:nowStr(), tool:"airtrunk-label-id", rows:dataRows(), units};
+}
+function exportJSON(){ if(!REG.length) return alert("Register is empty."); download("AirTrunk_register_"+stamp()+".json", new Blob([JSON.stringify(jsonPayload(),null,2)],{type:"application/json"})); }
+
+async function exportReport(){
   if(!REG.length) return alert("Register is empty.");
-  const rows=REG.map((r,i)=>'<tr><td>'+(i+1)+'</td><td>'+(r.thumb?'<img src="'+r.thumb+'">':'')+'</td><td class="a">'+esc(r.art)+(r.flag?' ⚠':'')+'</td><td>'+esc(r.name)+'</td><td class="m">'+esc(r.idnum)+'</td><td>'+(r.conf!=null?r.conf+'%':'')+'</td><td>'+(r.qty!=null?r.qty:'')+'</td><td>'+esc(r.notes)+'</td><td>'+esc(r.ts)+'</td></tr>').join("");
-  const html='<!doctype html><meta charset="utf-8"><title>AirTrunk OSE — identified goods</title>'
-   +'<style>body{font:14px -apple-system,Segoe UI,Arial;margin:24px;color:#1c2733}h1{font-size:18px}.sub{color:#5b6b7b;font-size:12.5px;margin-bottom:14px}'
-   +'table{border-collapse:collapse;width:100%}th,td{border:1px solid #d9e0e8;padding:6px 8px;text-align:left;vertical-align:middle;font-size:12.5px}th{background:#eef3f8}'
-   +'img{width:90px;height:90px;object-fit:cover;border-radius:6px}.a{font:600 12.5px ui-monospace,Consolas,monospace;color:#0b4f8a}.m{font:12px ui-monospace,Consolas,monospace}</style>'
-   +'<h1>AirTrunk OSE — identified goods</h1><div class="sub">'+REG.length+' item(s) · generated '+nowStr()+' · best‑effort label reads, confirm serialised items on the plate</div>'
-   +'<table><thead><tr><th>#</th><th>Photo</th><th>Article no.</th><th>Description</th><th>Identifying no.</th><th>Conf.</th><th>Qty</th><th>Location / notes</th><th>Time</th></tr></thead><tbody>'+rows+'</tbody></table>';
-  download("AirTrunk_identified_goods_"+stamp()+".html", new Blob([html],{type:"text/html"}));
+  const units=buildUnits();
+  const ok=units.filter(u=>u.fullyOK).length, need=units.length-ok;
+  /* resolve readable images (full-res if available, else the small thumb) */
+  const items=[];
+  for(let i=0;i<REG.length;i++){ const r=REG[i]; const img=(await bigFor(r._rid))||r.thumb||""; items.push({r,i,img}); }
+  const banner='<div class="banner'+(need?' warn':'')+'"><b>'+ok+' of '+units.length+'</b> units fully identified · <b>'+need+'</b> need retake/attention</div>';
+  const retake=units.filter(u=>!u.fullyOK);
+  let retakeHtml="";
+  if(retake.length){
+    retakeHtml='<h2 class="rt">⚠ Retake / action needed first ('+retake.length+')</h2><table><thead><tr><th>Article</th><th>S/N</th><th>Location</th><th>Reason</th></tr></thead><tbody>'
+      +retake.map(u=>'<tr><td class="a">'+esc(u.art||"?")+'</td><td class="m">'+esc(u.serial||"—")+'</td><td>'+esc([...u.locations].join(", "))+'</td><td class="bad">'+esc(u.reason)+'</td></tr>').join("")+'</tbody></table>';
+  } else { retakeHtml='<div class="allok">✓ All units fully identified — nothing to retake.</div>'; }
+  const head='<!doctype html><meta charset="utf-8"><title>AirTrunk OSE — identified goods</title>'
+   +'<style>body{font:14px -apple-system,Segoe UI,Arial;margin:22px;color:#1c2733}h1{font-size:19px;margin:0 0 2px}h2{font-size:15px;margin:20px 0 4px}h2.rt{color:#b0304a}'
+   +'.sub{color:#5b6b7b;font-size:12.5px;margin-bottom:12px}.banner{padding:10px 12px;border-radius:8px;background:#eef3f8;border:1px solid #d9e0e8;font-size:14px}.banner.warn{background:#fdecef;border-color:#f0a9b8}'
+   +'.allok{padding:8px 10px;background:#e8f5ee;border:1px solid #9fd3b4;border-radius:8px;color:#127a3e;font-weight:700}'
+   +'table{border-collapse:collapse;width:100%;margin-top:6px}th,td{border:1px solid #d9e0e8;padding:6px 8px;text-align:left;vertical-align:top;font-size:12.5px}th{background:#eef3f8}'
+   +'img{width:320px;max-width:44vw;border-radius:6px;border:1px solid #d9e0e8}.a{font:600 12.5px ui-monospace,Consolas,monospace;color:#0b4f8a}.m{font:12px ui-monospace,Consolas,monospace;word-break:break-all}.bad{color:#b0304a;font-weight:700}</style>';
+  function rowsHtml(list){
+    return '<table><thead><tr><th>#</th><th>Photo (readable)</th><th>Article no.</th><th>S/N</th><th>Section</th><th>Location</th><th>Qty</th><th>Conf.</th><th>Status</th></tr></thead><tbody>'
+     +list.map(({r,i,img})=>'<tr><td>'+(i+1)+'</td><td>'+(img?'<img src="'+img+'">':'<i>typed</i>')+'</td><td class="a">'+esc(r.art||"?")+'</td><td class="m">'+esc(r.serial||(SERIAL_REQUIRED.has(r.art)?"— S/N NOT READ —":""))+'</td><td>'+esc(sectionCode(r.section))+'</td><td>'+esc(r.location||"")+'</td><td>'+(r.qty!=null?r.qty:"")+'</td><td>'+(r.conf!=null?r.conf+'%':'')+'</td><td'+(r.needs_retake?' class="bad"':'')+'>'+(r.needs_retake?esc(retakeReason(r)||"retake"):"OK")+'</td></tr>').join("")
+     +'</tbody></table>';
+  }
+  const jsonBlock='<script type="application/json" id="register-data">'+JSON.stringify(jsonPayload()).replace(/<\//g,"<\\/")+'<\/script>';
+  /* split by embedded-image size to stay email-friendly (<~18MB per file) */
+  const LIMIT=18*1024*1024; const parts=[]; let cur=[],sz=0;
+  for(const it of items){ const s=(it.img?it.img.length:0); if(sz+s>LIMIT&&cur.length){parts.push(cur);cur=[];sz=0;} cur.push(it); sz+=s; }
+  if(cur.length) parts.push(cur);
+  for(let p=0;p<parts.length;p++){
+    const partTag=parts.length>1?(" — photos part "+(p+1)+" of "+parts.length):"";
+    const html=head+'<h1>AirTrunk OSE — identified goods</h1><div class="sub">generated '+nowStr()+' · '+REG.length+' photo row(s)'+partTag+' · best‑effort reads, verify serialised items on the plate</div>'
+     +banner+retakeHtml+'<h2>All items</h2>'+rowsHtml(parts[p])+jsonBlock;
+    download("AirTrunk_report_"+stamp()+(parts.length>1?("_part"+(p+1)+"of"+parts.length):"")+".html", new Blob([html],{type:"text/html"}));
+    if(p<parts.length-1) await new Promise(r=>setTimeout(r,500));
+  }
+  if(parts.length>1) alert("Report was large, so it was split into "+parts.length+" HTML files (each under ~18 MB for email). The CSV/JSON hold the full data in one file.");
 }
+
+/* ---------------- Location bar ---------------- */
+const MIN_LOCS=["MIN-A","MIN-B","MIN-C","MIN-D","MIN-E","MIN-F","MIN-G","MIN-H","MIN-I","MIN-J","MIN-K","MIN-L","MIN-M","MIN-N","MIN-O"];
+const locSel=document.getElementById("loc"), locFree=document.getElementById("locFree"), locNow=document.getElementById("locNow");
+MIN_LOCS.forEach(m=>{ const o=document.createElement("option"); o.value=m; o.textContent=m; locSel.appendChild(o); });
+try{ locSel.value=localStorage.getItem("atr_loc")||""; locFree.value=localStorage.getItem("atr_locfree")||""; }catch(e){}
+function curLocation(){ return [locSel.value||"",(locFree.value||"").trim()].filter(Boolean).join(" "); }
+function updLoc(){ const v=curLocation(); locNow.textContent=v||"not set"; try{localStorage.setItem("atr_loc",locSel.value||"");localStorage.setItem("atr_locfree",locFree.value||"");}catch(e){} }
+locSel.onchange=updLoc; locFree.oninput=updLoc; updLoc();
 
 /* ---------------- UI ---------------- */
 const out=document.getElementById("out"), drop=document.getElementById("drop"), file=document.getElementById("file");
@@ -267,7 +425,7 @@ document.getElementById("camClose").onclick=closeCamera;
 document.getElementById("capBtn").onclick=()=>{
   if(!camStream)return; const w=camVid.videoWidth,h=camVid.videoHeight; if(!w){camMsg.textContent="Camera still starting…";return;}
   const c=document.createElement("canvas"); c.width=w;c.height=h; c.getContext("2d").drawImage(camVid,0,0,w,h);
-  const im=new Image(); im.onload=()=>addImageEl(im,"camera"); im.src=c.toDataURL("image/jpeg",0.85);
+  const im=new Image(); im.onload=()=>addImageEl(im,"camera"); im.src=c.toDataURL("image/jpeg",0.9);
   camMsg.textContent="Captured ✓ — take another, or Close.";
 };
 ["dragover","dragenter"].forEach(ev=>drop.addEventListener(ev,e=>{e.preventDefault();drop.classList.add("hot");}));
@@ -275,31 +433,25 @@ document.getElementById("capBtn").onclick=()=>{
 drop.addEventListener("drop",e=>{ [...e.dataTransfer.files].filter(f=>f.type.startsWith("image/")).forEach(addImage); });
 document.getElementById("pasteBtn").onclick=()=>addTextCard();
 document.getElementById("expCsv").onclick=exportCSV;
-document.getElementById("expReport").onclick=exportReport;
+document.getElementById("expReport").onclick=()=>exportReport();
 document.getElementById("expJson").onclick=exportJSON;
-document.getElementById("clearReg").onclick=()=>{ if(REG.length&&confirm("Clear all "+REG.length+" logged items from this device? (Export first to keep a copy.)")){ REG=[]; saveReg(); renderReg(); } };
+document.getElementById("clearReg").onclick=()=>{ if(REG.length&&confirm("Clear all "+REG.length+" items (and their photos) from this device? Export first to keep a copy.")){ REG=[]; BIG&&Object.keys(BIG).forEach(k=>delete BIG[k]); idbClear(); saveReg(); renderReg(); } };
 
 function confClass(c){return c>=80?"c-hi":c>=45?"c-md":"c-lo";}
-function idsHtml(ids){ if(!ids||!ids.length) return '<div class="kv">No identifying number pattern found.</div>';
-  return '<div class="idline">Identifying number(s):<br>'+ids.map(i=>'&nbsp;• <b>'+esc(i.val)+'</b> <span style="color:#5b6b7b;font-weight:400">('+i.label+')</span>').join('<br>')+'</div>'; }
-function renderResult(box, r){
-  if(r.kind==="none"){ box.innerHTML='<div class="result"><h3>Not recognised</h3><div class="muted">No known clue found. Fix the text below (esp. catalog code / model / serial) and press Identify.</div>'+idsHtml(r.ids)+'</div>'; return; }
-  const cls=confClass(r.conf); let h='<div class="result">';
-  h+='<h3>'+esc(r.name||'')+'<span class="conf '+cls+'">'+r.conf+'% match</span></h3>';
-  h+='<div class="art">'+esc(r.art)+'</div>';
-  if(r.vendor) h+='<div class="kv"><b>Vendor:</b> '+esc(r.vendor)+'</div>';
-  if(r.parent&&r.parent!=="—") h+='<div class="kv"><b>Part of:</b> '+esc(r.parent)+'</div>';
-  h+=idsHtml(r.ids);
-  if(r.alts&&r.alts.length) h+='<div class="alt">Other possibilities: '+r.alts.map(esc).join(" · ")+'</div>';
-  if(r.flag) h+='<div class="flag">⚠ '+esc(r.flag)+'</div>';
+function renderResult(box, a){
+  if(a.r.kind==="none"){ box.innerHTML='<div class="result"><h3>Not recognised</h3><div class="muted">No known clue found. Fix the text below (esp. catalog code / model / full S/N) and press Identify.</div><div class="retake">Unreadable — retake photo</div></div>'; return; }
+  const cls=confClass(a.conf); let h='<div class="result">';
+  h+='<h3>'+esc(a.name||'')+'<span class="conf '+cls+'">'+a.conf+'% match</span></h3>';
+  h+='<div class="art">'+esc(a.art)+'</div>';
+  if(a.vendor) h+='<div class="kv"><b>Vendor:</b> '+esc(a.vendor)+'</div>';
+  if(a.section) h+='<div class="kv"><b>Section:</b> '+esc(a.section)+'</div>';
+  if(a.serial) h+='<div class="idline">S/N: <b>'+esc(a.serial)+'</b></div>';
+  else if(SERIAL_REQUIRED.has(a.art)) h+='<div class="retake">S/N NOT READ — retake photo (or type the S/N in the register row)</div>';
+  else if(a.other) h+='<div class="idline">Identifying no.: <b>'+esc(a.other)+'</b></div>';
+  if(a.alts&&a.alts.length) h+='<div class="alt">Other possibilities: '+a.alts.map(esc).join(" · ")+'</div>';
+  if(a.flag) h+='<div class="flag">⚠ '+esc(a.flag)+'</div>';
   h+='</div>';
   box.innerHTML=h;
-}
-
-function upsertRegister(rid, data){
-  let it=REG.find(x=>x._rid===rid);
-  if(it){ Object.assign(it,data); } else { it=Object.assign({_rid:rid,ts:nowStr(),qty:1,notes:""},data); REG.push(it); }
-  saveReg(); renderReg();
 }
 
 function addTextCard(){
@@ -307,13 +459,13 @@ function addTextCard(){
   const card=document.createElement("div"); card.className="card";
   card.innerHTML='<div class="top"><div class="body">'
     +'<div class="muted">Paste / type the label text:</div>'
-    +'<textarea id="ta'+id+'" placeholder="e.g. KSA1000ABG4  /  Model FA119HCZV1  /  S/N 21F0146283…"></textarea>'
+    +'<textarea id="ta'+id+'" placeholder="e.g. KSA1000ABG4  /  S/N: 21F01462832261050004"></textarea>'
     +'<div class="row"><button class="primary mini" id="go'+id+'">Identify</button><span class="muted" id="sv'+id+'"></span></div>'
     +'<div id="res'+id+'"></div></div></div>';
   out.prepend(card);
   const res=document.getElementById("res"+id), sv=document.getElementById("sv"+id);
-  document.getElementById("go"+id).onclick=()=>{ const r=identify(document.getElementById("ta"+id).value); renderResult(res,r);
-    upsertRegister(rid,{thumb:"",art:(r.kind==="none"?"(unidentified)":r.art),name:r.name||"",idnum:primaryId(r),conf:(r.kind==="none"?null:r.conf),src:"(typed)",flag:!!r.flag});
+  document.getElementById("go"+id).onclick=()=>{ const txt=document.getElementById("ta"+id).value; const a=analyze(txt); renderResult(res,a);
+    upsertRegister(rid,{thumb:"",art:a.art,name:a.name,serial:a.serial,other:a.other,idnum:a.serial||a.other,conf:a.conf,needs_retake:a.needsRetake,flag:a.flag,src:"(typed)"},{section:a.section,location:curLocation()});
     sv.textContent="✓ saved to register"; };
 }
 
@@ -339,20 +491,23 @@ function addImageEl(img, srcName){
   function draw(){ const w=img.naturalWidth,h=img.naturalHeight; if(rot%180===0){cv.width=w;cv.height=h;}else{cv.width=h;cv.height=w;}
     ctx.save(); ctx.translate(cv.width/2,cv.height/2); ctx.rotate(rot*Math.PI/180); ctx.drawImage(img,-w/2,-h/2); ctx.restore(); }
   draw();
-  function thumbURL(){ const m=240,s=Math.min(1,m/Math.max(cv.width,cv.height)); const c=document.createElement("canvas"); c.width=Math.round(cv.width*s); c.height=Math.round(cv.height*s); c.getContext("2d").drawImage(cv,0,0,c.width,c.height); return c.toDataURL("image/jpeg",0.6); }
+  function scaled(max,q){ const s=Math.min(1,max/Math.max(cv.width,cv.height)); const c=document.createElement("canvas"); c.width=Math.round(cv.width*s); c.height=Math.round(cv.height*s); c.getContext("2d").drawImage(cv,0,0,c.width,c.height); return c.toDataURL("image/jpeg",q); }
   const st=document.getElementById("st"+id), ta=document.getElementById("ta"+id), res=document.getElementById("res"+id), sv=document.getElementById("sv"+id);
-  function doId(){ const r=identify(ta.value); renderResult(res,r);
-    upsertRegister(rid,{thumb:thumbURL(),art:(r.kind==="none"?"(unidentified)":r.art),name:r.name||"",idnum:primaryId(r),conf:(r.kind==="none"?null:r.conf),src:srcName,flag:!!r.flag});
-    sv.textContent="✓ saved to register"; }
+  function doId(){ const a=analyze(ta.value); renderResult(res,a);
+    const thumb=scaled(240,0.6), big=scaled(1600,0.8); BIG[rid]=big; idbPut(rid,big);
+    upsertRegister(rid,{thumb,art:a.art,name:a.name,serial:a.serial,other:a.other,idnum:a.serial||a.other,conf:a.conf,needs_retake:a.needsRetake,flag:a.flag,src:srcName},{section:a.section,location:curLocation()});
+    sv.textContent="✓ saved to register"+(a.serial?" (S/N "+a.serial+")":""); }
   document.getElementById("go"+id).onclick=doId;
   document.getElementById("rot"+id).onclick=()=>{rot=(rot+90)%360;draw();};
   document.getElementById("ocr"+id).onclick=()=>runOCR();
+  function saveUnread(){ const thumb=scaled(240,0.6), big=scaled(1600,0.8); BIG[rid]=big; idbPut(rid,big);
+    upsertRegister(rid,{thumb,art:"(unidentified)",name:"",serial:"",other:"",idnum:"",conf:null,needs_retake:true,flag:false,src:srcName},{section:"",location:curLocation()}); }
   async function runOCR(){
-    if(!window.Tesseract){ st.textContent="OCR engine not loaded (no internet?). Type the label text below and press Identify."; upsertRegister(rid,{thumb:thumbURL(),art:"(unidentified)",name:"",idnum:"",conf:null,src:srcName,flag:false}); return; }
+    if(!window.Tesseract){ st.textContent="OCR engine not loaded (no internet?). Type the label text below and press Identify."; saveUnread(); return; }
     st.textContent="Reading label… (first run downloads the engine, ~10s)";
     try{ const {data}=await Tesseract.recognize(cv,'eng',{tessedit_pageseg_mode:6}); ta.value=(data.text||"").trim();
       st.textContent="Read with ~"+Math.round(data.confidence||0)+"% OCR confidence. Check text, then Identify:"; doId();
-    }catch(err){ st.textContent="OCR failed ("+err.message+"). Type the label text below and press Identify."; upsertRegister(rid,{thumb:thumbURL(),art:"(unidentified)",name:"",idnum:"",conf:null,src:srcName,flag:false}); }
+    }catch(err){ st.textContent="OCR failed ("+err.message+"). Type the label text below and press Identify."; saveUnread(); }
   }
   runOCR();
 }
@@ -364,10 +519,10 @@ function addImageEl(img, srcName){
   if(window.Tesseract) setE(); else window.addEventListener("load",setE);
   const tb=document.querySelector("#kbtable tbody");
   const rows=[
-    ["Fan Wall Unit (AHU)","FWU400_V02_VER_1_A","Vertiv","FA119HCZV1 · P/N F0146283 · serial 21F0146283…"],
-    ["Generator","GEN2000_V01_CUM_16","Cummins","'Acoustic Genset Enclosure' · SK8E‑001‑… · genset serial e.g. C26H036981"],
-    ["Kiosk Transformer","KTX2250_V01_SCH_58","Schneider","AS/NZS 62271.202 · 'Kiosk/Substation' · serial AC2550100xx"],
-    ["Hybrid Dry Cooler","HRU3200_V01_BAC_26_A","BAC","HXV‑…QA‑P · factory no 55606/… · 'Hybrid dry cooler'"],
+    ["Fan Wall Unit (AHU) — 2 pkgs/S/N","FWU400_V02_VER_1_A","Vertiv","FA119HCZV1 · S/N 21F0146283… (20 char) · 1/2 Lower + 2/2 Upper"],
+    ["Generator","GEN2000_V01_CUM_16","Cummins","'Acoustic Genset' · genset serial e.g. C26H036981"],
+    ["Kiosk Transformer","KTX2250_V01_SCH_58","Schneider","AS/NZS 62271.202 · enclosure serial AC2550100xx"],
+    ["Hybrid Dry Cooler","HRU3200_V01_BAC_26_A","BAC","HXV‑…QA‑P · factory no 55606/…"],
     ["Cooling Distribution Unit","CDU1000","Vertiv","XDU1350 · 'CDU' · Liebert"],
     ["Water‑Cooled Chiller","WCC5800","JCI","'Water cooled chiller'"],
     ["Load Bank","WCC1050","Generator Power","VPS60W · 'Load bank'"],
