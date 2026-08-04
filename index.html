@@ -178,10 +178,12 @@ const ARTICLES = [
   {art:"HRU3200_V01_BAC_26_A", name:"3850kW Hybrid Dry Cooler (HDC)", vendor:"BAC (Baltimore Aircoil)",
    rules:[{re:/HXV[-\s]?\d/i,w:95},{re:/\b55606\b/,w:70},{kw:["HYBRID DRY","DRY COOLER"],w:70},{kw:["BALTIMORE","BAC"],w:25}]},
 ];
-/* Full SERIAL numbers per family. FWU verified against 21F01462832261050004 / ...630B0001 / ...630D0001
-   (20 chars: 21F + 12 digits + 1 alnum + 4 digits — note the letter can sit in the alnum slot). */
+/* Full SERIAL numbers per family. FWU = 20 chars: "21F" + 7 P/N digits (0146283) + a 10-char
+   alphanumeric suffix. The suffix's letter can sit at ANY position, so it is [0-9A-Z]{10} (not a fixed
+   slot). Verified vs real reads 21F01462832261080005, 21F01462832261050004, 21F0146283225C010001
+   (C at pos 14), 21F014628322630B0001, 21F014628322630D0001 (letter at pos 16). */
 const SERIAL_RX = {
-  "FWU400_V02_VER_1_A": /21F\d{12}[0-9A-Z]\d{4}/,
+  "FWU400_V02_VER_1_A": /21F\d{7}[0-9A-Z]{10}/,
   "GEN2000_V01_CUM_16": /[A-Z]\d{2}H\d{6}/,
   "KTX2250_V01_SCH_58": /AC\d{9,10}/
 };
@@ -219,13 +221,17 @@ function findSerial(raw, art){
 function otherId(raw){ const sq=squish(raw); for(const p of ID_PATTERNS){ const m=(raw||"").match(p.re)||sq.match(p.re); if(m) return m[0].replace(/\s+/g,""); } return ""; }
 /* 1/2 Lower vs 2/2 Upper section sticker */
 function detectSection(raw){ const u=up(raw); if(/2\s*\/\s*2/.test(raw)||/UPPER\s*SECTION/.test(u)) return "Upper (2/2)"; if(/1\s*\/\s*2/.test(raw)||/LOWER\s*SECTION/.test(u)) return "Lower (1/2)"; return ""; }
+/* A full serial IS proof of its family — used when keyword rules miss (e.g. squished/garbled text). */
+function familyFromSerial(text){ const sq=squish(text), ru=(text||"").toUpperCase(); for(const fam in SERIAL_RX){ if(sq.match(SERIAL_RX[fam])||ru.match(SERIAL_RX[fam])) return fam; } return ""; }
 function analyze(text){
-  const r=identify(text);
-  const art=(r.kind==="none")?"(unidentified)":r.art;
+  let r=identify(text);
+  let art=(r.kind==="none")?"(unidentified)":r.art;
+  let serialInferred=false;
+  if(art==="(unidentified)"){ const fam=familyFromSerial(text); if(fam){ const m=ARTICLES.find(a=>a.art===fam)||{}; r={kind:"family",art:fam,name:m.name,vendor:m.vendor,conf:60}; art=fam; serialInferred=true; } }
   const serial=findSerial(text, art);
   const other=serial?"":otherId(text);
   const needsRetake=(art==="(unidentified)")||(SERIAL_REQUIRED.has(art)&&!serial);
-  return {r,art,name:r.name||"",vendor:r.vendor||"",serial,other,conf:(r.kind==="none"?null:r.conf),needsRetake,flag:!!r.flag,alts:r.alts||[],section:detectSection(text)};
+  return {r,art,name:r.name||"",vendor:r.vendor||"",serial,other,conf:(r.kind==="none"?null:r.conf),needsRetake,flag:!!r.flag,alts:r.alts||[],section:detectSection(text),serialInferred};
 }
 function retakeReason(it){
   if(it.art==="(unidentified)") return "Unreadable — retake photo";
