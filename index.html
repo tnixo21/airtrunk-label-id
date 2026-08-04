@@ -12,17 +12,18 @@
   header h1{margin:0;font-size:18px}
   header p{margin:4px 0 0;font-size:12.5px;opacity:.9}
   main{max-width:1050px;margin:0 auto;padding:16px}
-  .drop{background:var(--card);border:2px dashed var(--line);border-radius:12px;padding:26px;text-align:center;cursor:pointer;transition:.15s}
+  .drop{background:var(--card);border:2px dashed var(--line);border-radius:12px;padding:22px;text-align:center;cursor:pointer;transition:.15s}
   .drop:hover,.drop.hot{border-color:var(--brand);background:#f0f6fc}
   .drop b{color:var(--brand)}
   .row{display:flex;gap:10px;flex-wrap:wrap;align-items:center;margin-top:10px}
   button{font:inherit;border:1px solid var(--line);background:#fff;border-radius:8px;padding:7px 12px;cursor:pointer}
   button.primary{background:var(--brand);color:#fff;border-color:var(--brand)}
+  button.ok{background:var(--ok);color:#fff;border-color:var(--ok)}
   button:disabled{opacity:.5;cursor:default}
   .muted{color:var(--mut);font-size:12.5px}
   .card{background:var(--card);border:1px solid var(--line);border-radius:12px;margin-top:14px;overflow:hidden}
   .card .top{display:flex;gap:14px;padding:14px}
-  .thumb{width:180px;min-width:180px;height:180px;background:#0d151d;border-radius:8px;display:flex;align-items:center;justify-content:center;overflow:hidden}
+  .thumb{width:170px;min-width:170px;height:170px;background:#0d151d;border-radius:8px;display:flex;align-items:center;justify-content:center;overflow:hidden}
   .thumb canvas{max-width:100%;max-height:100%}
   .body{flex:1;min-width:0}
   .result{border-radius:10px;padding:12px;margin-bottom:10px;border:1px solid var(--line)}
@@ -33,29 +34,41 @@
   .idline{font:600 13px ui-monospace,Consolas,monospace;background:var(--chip);border-radius:6px;padding:6px 8px;margin-top:6px;word-break:break-all}
   .flag{background:#fff6e5;border:1px solid #f0d089;color:#7a5a00;border-radius:8px;padding:8px 10px;margin-top:8px;font-size:13px}
   .alt{font-size:12.5px;color:var(--mut);margin-top:6px}
-  textarea{width:100%;min-height:88px;border:1px solid var(--line);border-radius:8px;padding:8px;font:12.5px ui-monospace,Consolas,monospace;resize:vertical}
+  textarea{width:100%;min-height:80px;border:1px solid var(--line);border-radius:8px;padding:8px;font:12.5px ui-monospace,Consolas,monospace;resize:vertical}
+  input.f{border:1px solid var(--line);border-radius:6px;padding:4px 6px;font:inherit}
   .mini{font-size:12px;padding:4px 9px}
   .status{font-size:12.5px;color:var(--mut);min-height:16px}
   details{margin-top:16px;background:var(--card);border:1px solid var(--line);border-radius:12px;padding:12px 14px}
   summary{cursor:pointer;font-weight:600}
   table{border-collapse:collapse;width:100%;margin-top:8px;font-size:12.5px}
-  th,td{border:1px solid var(--line);padding:5px 7px;text-align:left;vertical-align:top}
+  th,td{border:1px solid var(--line);padding:5px 7px;text-align:left;vertical-align:middle}
   th{background:var(--chip)}
   code{font:12px ui-monospace,Consolas,monospace;background:var(--chip);padding:1px 4px;border-radius:4px}
   .kv{font-size:12.5px;color:var(--mut);margin-top:6px}
   .kv b{color:var(--ink)}
+  /* register */
+  #reg{background:var(--card);border:1px solid var(--line);border-radius:12px;margin-top:16px;padding:12px 14px}
+  #reg h2{margin:0;font-size:16px;display:flex;align-items:center;gap:8px}
+  #reg .badge{background:var(--brand);color:#fff;border-radius:20px;font-size:12px;padding:1px 9px}
+  #regtbl img{width:56px;height:56px;object-fit:cover;border-radius:6px;background:#0d151d}
+  #regtbl td .art{font:600 12.5px ui-monospace,Consolas,monospace;color:var(--brand);word-break:break-all}
+  #regtbl td .idn{font:12px ui-monospace,Consolas,monospace;color:var(--ink);word-break:break-all}
+  #regtbl input{width:100%;border:1px solid var(--line);border-radius:6px;padding:3px 5px;font:inherit}
+  #regtbl input.qty{width:52px;text-align:center}
+  .x{color:var(--bad);cursor:pointer;font-weight:700;border:none;background:none;font-size:16px}
+  .empty{color:var(--mut);font-size:13px;padding:8px 0}
 </style>
 </head>
 <body>
 <header>
   <h1>AirTrunk OSE — Label Identifier</h1>
-  <p>Drop a photo of a goods label → it reads the text and gives its best guess at the article number, from the OSE Banking paperwork. Works offline once loaded; if OCR is unsure, edit the text and re‑identify.</p>
+  <p>Photograph a goods label → it reads the text, gives its best guess at the article number, and keeps a running register you can export. Reads in your browser; the register is saved on this device.</p>
 </header>
 <main>
   <div id="drop" class="drop">
-    <div style="font-size:34px">📷</div>
-    <div><b>Click to choose photos</b> or drag &amp; drop them here</div>
-    <div class="muted" style="margin-top:4px">JPG/PNG · multiple at once · nothing is uploaded — all reading happens in your browser</div>
+    <div style="font-size:30px">📷</div>
+    <div><b>Click to choose / take photos</b> or drag &amp; drop</div>
+    <div class="muted" style="margin-top:4px">JPG/PNG · multiple at once · nothing is uploaded</div>
     <input id="file" type="file" accept="image/*" multiple hidden>
   </div>
   <div class="row">
@@ -64,19 +77,29 @@
   </div>
   <div id="out"></div>
 
+  <!-- Register -->
+  <section id="reg">
+    <h2>📋 Register <span class="badge" id="regCount">0</span></h2>
+    <div class="row" style="margin-top:8px">
+      <button class="primary mini" id="expCsv">⬇ Export CSV</button>
+      <button class="primary mini" id="expReport">⬇ Export report (with photos)</button>
+      <button class="mini" id="expJson">⬇ Backup (JSON)</button>
+      <button class="mini" id="clearReg" style="margin-left:auto">🗑 Clear register</button>
+    </div>
+    <div id="regBody"></div>
+  </section>
+
   <details>
     <summary>Reference — what it knows (article families &amp; label clues)</summary>
-    <div class="muted" style="margin-top:6px">Built from the OSE Banking workbook, the SKU Alignment doc and the loaded Ongoing article master (Air Trunk Test).</div>
-    <table id="kbtable"><thead><tr><th>Piece</th><th>Article number</th><th>Vendor</th><th>Label clues it looks for</th></tr></thead><tbody></tbody></table>
+    <table id="kbtable"><thead><tr><th>Piece</th><th>Article number</th><th>Vendor</th><th>Label clues</th></tr></thead><tbody></tbody></table>
     <div class="muted" style="margin-top:8px">⚠ = not yet in the Ongoing article master.</div>
   </details>
-  <p class="muted" style="margin-top:14px">Best‑effort tool. Always confirm serialised items (FWU/GEN/KTX) by the serial on the plate. Report issues to Tom (tnix@bws.dk).</p>
+  <p class="muted" style="margin-top:14px">Best‑effort. Confirm serialised items (FWU/GEN/KTX) by the serial on the plate. Register is stored only in this browser — export to keep a copy. Issues → Tom (tnix@bws.dk).</p>
 </main>
 
 <script src="https://cdn.jsdelivr.net/npm/tesseract.js@5.1.1/dist/tesseract.min.js"></script>
 <script>
 /* ---------------- Knowledge base ---------------- */
-// Specific catalog codes -> their own article number (busway/tap-off components + end-feed boxes)
 const COMPONENTS = [
   {art:"KSA1000ABG4", name:"1000A Inrow busway — End Feed Box (LEFT)", parent:"BWY1000", re:/KSA\s?1000\s?ABG\s?4?/i},
   {art:"KSA1000ABD4", name:"1000A Inrow busway — End Feed Box (RIGHT)", parent:"BWY1000", re:/KSA\s?1000\s?ABD\s?\/?G?4?/i},
@@ -94,39 +117,36 @@ const COMPONENTS = [
   {art:"HF16E", name:"Edgewise Hangers", parent:"BWY3200_V01_SCH_0_A", re:/\bHF\s?16E\b/i},
   {art:"BFC2532G10ETBBM54N", name:"End Feed Box 3200A", parent:"BWY3200_V01_SCH_0_A", re:/BFC2532G10ETB/i},
 ];
-// Not yet in the Ongoing master
 const NOT_LOADED = [
   {art:"TOB63  (create in Ongoing)", name:"63A Inrow Tap‑Off Box (Dual) — Canalis KSB63", parent:"—", re:/KSB\s?63/i,
-   flag:"Not in the Ongoing article master. In the SKU doc this is the 'Inrow TOB Dual' (TOB63‑SCH‑0‑A) — it needs an article created before it can be received."},
+   flag:"Not in the Ongoing article master. SKU doc 'Inrow TOB Dual' (TOB63‑SCH‑0‑A) — needs an article created before receiving."},
   {art:"TOB32  (create in Ongoing)", name:"32A Inrow Tap‑Off Box — Canalis KSB32", parent:"—", re:/KSB\s?32/i,
    flag:"Not in the Ongoing article master. SKU doc 'Inrow TOB (32A)' (TOB32‑SCH‑0‑A) — needs an article created."},
 ];
-// Family-level machines (scored by multiple clues)
 const ARTICLES = [
-  {art:"FWU400_V02_VER_1_A", name:"400kW Fan Wall Unit (AHU)", vendor:"Vertiv", inMaster:true,
+  {art:"FWU400_V02_VER_1_A", name:"400kW Fan Wall Unit (AHU)", vendor:"Vertiv",
    rules:[{re:/FA119HCZV1/i,w:100},{re:/F0146283/i,w:85},{re:/\d{2}F0146283/i,w:85},{kw:["FAN WALL"],w:60},{kw:["AHU"],w:25},{kw:["VERTIV"],w:12}]},
-  {art:"GEN2000_V01_CUM_16", name:"2000kW Generator (Cummins)", vendor:"Cummins", inMaster:true,
-   rules:[{re:/SK8E-?001/i,w:90},{kw:["ACOUSTIC GENSET"],w:80},{kw:["GENSET"],w:45},{kw:["CUMMINS"],w:40},{re:/\b[A-Z]\d{2}H\d{6}\b/,w:45},{kw:["GENERATOR","GENSET ENCLOSURE"],w:20}]},
-  {art:"KTX2250_V01_SCH_58", name:"2250kW MV/LV Kiosk Substation / Transformer", vendor:"Schneider", inMaster:true,
+  {art:"GEN2000_V01_CUM_16", name:"2000kW Generator (Cummins)", vendor:"Cummins",
+   rules:[{re:/SK8E-?001/i,w:90},{kw:["ACOUSTIC GENSET"],w:80},{kw:["GENSET"],w:45},{kw:["CUMMINS"],w:40},{re:/\b[A-Z]\d{2}H\d{6}\b/,w:45},{kw:["GENERATOR"],w:20}]},
+  {art:"KTX2250_V01_SCH_58", name:"2250kW MV/LV Kiosk Substation / Transformer", vendor:"Schneider",
    rules:[{re:/62271\.?202/,w:90},{re:/\bAC\s?2550\s?\d{4,6}\b/i,w:85},{kw:["KIOSK"],w:60},{kw:["SUBSTATION"],w:55},{re:/GCR[_ ]?KIOSK/i,w:80},{kw:["TRANSFORMER"],w:25}]},
-  {art:"TOB1000_V01_SCH_2", name:"1000A Tap‑Off Box (TOB)", vendor:"Schneider", inMaster:true,
+  {art:"TOB1000_V01_SCH_2", name:"1000A Tap‑Off Box (TOB)", vendor:"Schneider",
    rules:[{re:/PTNSN34100/i,w:100},{kw:["1000A TOB","TAP-OFF BOX 1000","TAP OFF BOX 1000"],w:70},{kw:["1000A"],w:20}]},
-  {art:"BWY3200_V01_SCH_0_A", name:"3200A Primary Busway (per batch)", vendor:"Schneider", inMaster:true,
+  {art:"BWY3200_V01_SCH_0_A", name:"3200A Primary Busway (per batch)", vendor:"Schneider",
    rules:[{re:/BFC2532/i,w:80},{re:/BRC2532/i,w:80},{kw:["3200A"],w:40},{kw:["PRIMARY BUSWAY"],w:50},{kw:["BUSWAY"],w:15}]},
-  {art:"BWY1000", name:"1000A Inrow Busway (per batch)", vendor:"Schneider", inMaster:true,
+  {art:"BWY1000", name:"1000A Inrow Busway (per batch)", vendor:"Schneider",
    rules:[{re:/KSA\s?1000/i,w:65},{kw:["CANALIS"],w:40},{kw:["INROW BUSWAY","IN-ROW BUSWAY","INROW"],w:30}]},
-  {art:"CDU1000", name:"1000kW Cooling Distribution Unit (CDU)", vendor:"Vertiv", inMaster:true,
+  {art:"CDU1000", name:"1000kW Cooling Distribution Unit (CDU)", vendor:"Vertiv",
    rules:[{re:/XDU\s?1350/i,w:95},{kw:["COOLING DISTRIBUTION"],w:70},{kw:["CDU"],w:45},{kw:["LIEBERT"],w:30}]},
-  {art:"WCC5800", name:"5800kW Water‑Cooled Chiller (WCC)", vendor:"Johnson Controls / JCI", inMaster:true,
+  {art:"WCC5800", name:"5800kW Water‑Cooled Chiller (WCC)", vendor:"Johnson Controls / JCI",
    rules:[{kw:["WATER COOLED CHILLER","WATER-COOLED CHILLER"],w:85},{kw:["CHILLER"],w:55},{kw:["JOHNSON CONTROLS","JCI","YORK"],w:40}]},
-  {art:"WCC1050", name:"1050kW Water‑Cooled Load Bank", vendor:"Generator Power", inMaster:true,
+  {art:"WCC1050", name:"1050kW Water‑Cooled Load Bank", vendor:"Generator Power",
    rules:[{re:/VPS60W/i,w:95},{kw:["LOAD BANK","LOADBANK"],w:75}]},
-  {art:"PTU_V01_VER_47_A", name:"1850kW Power Train Unit (IT PTU)", vendor:"Vertiv", inMaster:true,
+  {art:"PTU_V01_VER_47_A", name:"1850kW Power Train Unit (IT PTU)", vendor:"Vertiv",
    rules:[{re:/A-04-\w+-PTU/i,w:90},{kw:["POWER TRAIN"],w:60},{kw:["PTU"],w:35}]},
-  {art:"HRU3200_V01_BAC_26_A", name:"3850kW Hybrid Dry Cooler (HDC)", vendor:"BAC (Baltimore Aircoil)", inMaster:true,
+  {art:"HRU3200_V01_BAC_26_A", name:"3850kW Hybrid Dry Cooler (HDC)", vendor:"BAC (Baltimore Aircoil)",
    rules:[{re:/HXV[-\s]?\d/i,w:95},{re:/\b55606\b/,w:70},{kw:["HYBRID DRY","DRY COOLER"],w:70},{kw:["BALTIMORE","BAC"],w:25}]},
 ];
-// Identifying-number extractors, most specific first
 const ID_PATTERNS = [
   {label:"Fan Wall Unit serial", re:/\b\d{2}F0146283[A-Z0-9]{4,}\b/i},
   {label:"Generator genset serial", re:/\b[A-Z]\d{2}H\d{6}\b/},
@@ -141,29 +161,75 @@ const ID_PATTERNS = [
 ];
 
 /* ---------------- Matcher ---------------- */
-function up(s){return (s||"").toUpperCase();}
-function squish(s){return up(s).replace(/[^A-Z0-9./-]/g,"");}   // for catalog-code matching across OCR spacing
-function testRule(r, raw, sq){
-  if(r.re) return (r.re.test(raw)||r.re.test(sq)) ? r.w : 0;
-  if(r.kw) return r.kw.some(k=>up(raw).includes(up(k))) ? r.w : 0;
-  return 0;
-}
+const up=s=>(s||"").toUpperCase(), squish=s=>up(s).replace(/[^A-Z0-9./-]/g,"");
+function testRule(r,raw,sq){ if(r.re) return (r.re.test(raw)||r.re.test(sq))?r.w:0; if(r.kw) return r.kw.some(k=>up(raw).includes(up(k)))?r.w:0; return 0; }
+function extractIds(raw){ const out=[],seen=new Set(); for(const p of ID_PATTERNS){const m=raw.match(p.re); if(m){const v=m[0].replace(/\s+/g,"").trim(); if(!seen.has(v)){seen.add(v);out.push({label:p.label,val:v});}}} return out; }
 function identify(text){
   const raw=text||"", sq=squish(raw);
-  // 1) exact component / not-loaded catalog codes = highest confidence
   for(const c of NOT_LOADED){ if(c.re.test(raw)||c.re.test(sq)) return {kind:"exact",art:c.art,name:c.name,parent:c.parent,conf:95,flag:c.flag,ids:extractIds(raw)}; }
   for(const c of COMPONENTS){ if(c.re.test(raw)||c.re.test(sq)) return {kind:"exact",art:c.art,name:c.name,parent:c.parent,conf:96,ids:extractIds(raw)}; }
-  // 2) family machines by weighted clues
-  let scored=ARTICLES.map(a=>({a,s:a.rules.reduce((t,r)=>t+testRule(r,raw,sq),0)})).filter(x=>x.s>0).sort((x,y)=>y.s-x.s);
-  if(!scored.length) return {kind:"none",ids:extractIds(raw)};
-  const best=scored[0], conf=Math.max(20,Math.min(97,best.s));
-  const alts=scored.slice(1,3).filter(x=>x.s>=20).map(x=>x.a.art+" ("+x.a.name+")");
+  let s=ARTICLES.map(a=>({a,s:a.rules.reduce((t,r)=>t+testRule(r,raw,sq),0)})).filter(x=>x.s>0).sort((x,y)=>y.s-x.s);
+  if(!s.length) return {kind:"none",ids:extractIds(raw)};
+  const best=s[0], conf=Math.max(20,Math.min(97,best.s));
+  const alts=s.slice(1,3).filter(x=>x.s>=20).map(x=>x.a.art);
   return {kind:"family",art:best.a.art,name:best.a.name,vendor:best.a.vendor,conf,alts,ids:extractIds(raw)};
 }
-function extractIds(raw){
-  const out=[]; const seen=new Set();
-  for(const p of ID_PATTERNS){ const m=raw.match(p.re); if(m){ const v=m[0].replace(/\s+/g,"").trim(); if(!seen.has(v)){seen.add(v); out.push({label:p.label,val:v});} } }
-  return out;
+const primaryId=r=>(r.ids&&r.ids.length)?r.ids[0].val:"";
+
+/* ---------------- Register (persisted) ---------------- */
+const LS="atr_register_v1";
+let REG=[]; try{REG=JSON.parse(localStorage.getItem(LS)||"[]");}catch(e){REG=[];}
+function saveReg(){ try{localStorage.setItem(LS,JSON.stringify(REG));}catch(e){alert("Couldn't save register (storage full). Export and clear.");} }
+function nowStr(){ const d=new Date(); const p=n=>String(n).padStart(2,"0"); return d.getFullYear()+"-"+p(d.getMonth()+1)+"-"+p(d.getDate())+" "+p(d.getHours())+":"+p(d.getMinutes()); }
+function addToRegister(item){ REG.push(item); saveReg(); renderReg(); }
+function renderReg(){
+  document.getElementById("regCount").textContent=REG.length;
+  const body=document.getElementById("regBody");
+  if(!REG.length){ body.innerHTML='<div class="empty">Nothing logged yet. Identify a label, then press “Add to register”.</div>'; return; }
+  let h='<div style="overflow-x:auto"><table id="regtbl"><thead><tr><th>#</th><th>Photo</th><th>Article no.</th><th>Description</th><th>Identifying no.</th><th>Conf.</th><th>Qty</th><th>Location / notes</th><th>Time</th><th></th></tr></thead><tbody>';
+  REG.forEach((r,i)=>{
+    h+='<tr>'
+     +'<td>'+(i+1)+'</td>'
+     +'<td>'+(r.thumb?'<img src="'+r.thumb+'">':'<span class="muted">—</span>')+'</td>'
+     +'<td><span class="art">'+esc(r.art||"?")+'</span>'+(r.flag?' ⚠':'')+'</td>'
+     +'<td>'+esc(r.name||"")+'</td>'
+     +'<td><span class="idn">'+esc(r.idnum||"")+'</span></td>'
+     +'<td>'+(r.conf!=null?r.conf+'%':'')+'</td>'
+     +'<td><input class="qty" type="number" min="0" value="'+(r.qty!=null?r.qty:1)+'" data-i="'+i+'" data-k="qty"></td>'
+     +'<td><input type="text" value="'+esc(r.notes||"")+'" data-i="'+i+'" data-k="notes" placeholder="e.g. bay / pallet / status"></td>'
+     +'<td class="muted">'+esc(r.ts||"")+'</td>'
+     +'<td><button class="x" title="remove" data-del="'+i+'">✕</button></td>'
+     +'</tr>';
+  });
+  h+='</tbody></table></div>';
+  body.innerHTML=h;
+  body.querySelectorAll("input").forEach(inp=>inp.onchange=e=>{ const i=+e.target.dataset.i,k=e.target.dataset.k; REG[i][k]=(k==="qty")?(+e.target.value||0):e.target.value; saveReg(); });
+  body.querySelectorAll("[data-del]").forEach(b=>b.onclick=e=>{ REG.splice(+e.target.dataset.del,1); saveReg(); renderReg(); });
+}
+function esc(s){return String(s==null?"":s).replace(/&/g,"&amp;").replace(/</g,"&lt;").replace(/>/g,"&gt;").replace(/"/g,"&quot;");}
+
+/* ---------------- Exports ---------------- */
+function download(name,blob){ const a=document.createElement("a"); a.href=URL.createObjectURL(blob); a.download=name; a.click(); setTimeout(()=>URL.revokeObjectURL(a.href),4000); }
+function stamp(){ const d=new Date(),p=n=>String(n).padStart(2,"0"); return d.getFullYear()+p(d.getMonth()+1)+p(d.getDate())+"-"+p(d.getHours())+p(d.getMinutes()); }
+function exportCSV(){
+  if(!REG.length) return alert("Register is empty.");
+  const q=v=>'"'+String(v==null?"":v).replace(/"/g,'""')+'"';
+  const head=["#","Time","Article number","Description","Identifying number","Confidence %","Qty","Location / notes","Source file"];
+  const lines=[head.map(q).join(",")];
+  REG.forEach((r,i)=>lines.push([i+1,r.ts,r.art,r.name,r.idnum,r.conf,r.qty,r.notes,r.src].map(q).join(",")));
+  download("AirTrunk_label_register_"+stamp()+".csv", new Blob([lines.join("\r\n")],{type:"text/csv"}));
+}
+function exportJSON(){ if(!REG.length) return alert("Register is empty."); download("AirTrunk_label_register_"+stamp()+".json", new Blob([JSON.stringify(REG,null,2)],{type:"application/json"})); }
+function exportReport(){
+  if(!REG.length) return alert("Register is empty.");
+  const rows=REG.map((r,i)=>'<tr><td>'+(i+1)+'</td><td>'+(r.thumb?'<img src="'+r.thumb+'">':'')+'</td><td class="a">'+esc(r.art)+(r.flag?' ⚠':'')+'</td><td>'+esc(r.name)+'</td><td class="m">'+esc(r.idnum)+'</td><td>'+(r.conf!=null?r.conf+'%':'')+'</td><td>'+(r.qty!=null?r.qty:'')+'</td><td>'+esc(r.notes)+'</td><td>'+esc(r.ts)+'</td></tr>').join("");
+  const html='<!doctype html><meta charset="utf-8"><title>AirTrunk OSE — identified goods</title>'
+   +'<style>body{font:14px -apple-system,Segoe UI,Arial;margin:24px;color:#1c2733}h1{font-size:18px}.sub{color:#5b6b7b;font-size:12.5px;margin-bottom:14px}'
+   +'table{border-collapse:collapse;width:100%}th,td{border:1px solid #d9e0e8;padding:6px 8px;text-align:left;vertical-align:middle;font-size:12.5px}th{background:#eef3f8}'
+   +'img{width:90px;height:90px;object-fit:cover;border-radius:6px}.a{font:600 12.5px ui-monospace,Consolas,monospace;color:#0b4f8a}.m{font:12px ui-monospace,Consolas,monospace}</style>'
+   +'<h1>AirTrunk OSE — identified goods</h1><div class="sub">'+REG.length+' item(s) · generated '+nowStr()+' · best‑effort label reads, confirm serialised items on the plate</div>'
+   +'<table><thead><tr><th>#</th><th>Photo</th><th>Article no.</th><th>Description</th><th>Identifying no.</th><th>Conf.</th><th>Qty</th><th>Location / notes</th><th>Time</th></tr></thead><tbody>'+rows+'</tbody></table>';
+  download("AirTrunk_identified_goods_"+stamp()+".html", new Blob([html],{type:"text/html"}));
 }
 
 /* ---------------- UI ---------------- */
@@ -175,40 +241,41 @@ file.onchange=e=>{ [...e.target.files].forEach(addImage); file.value=""; };
 ["dragleave","drop"].forEach(ev=>drop.addEventListener(ev,e=>{e.preventDefault();drop.classList.remove("hot");}));
 drop.addEventListener("drop",e=>{ [...e.dataTransfer.files].filter(f=>f.type.startsWith("image/")).forEach(addImage); });
 document.getElementById("pasteBtn").onclick=()=>addTextCard();
+document.getElementById("expCsv").onclick=exportCSV;
+document.getElementById("expReport").onclick=exportReport;
+document.getElementById("expJson").onclick=exportJSON;
+document.getElementById("clearReg").onclick=()=>{ if(REG.length&&confirm("Clear all "+REG.length+" logged items from this device? (Export first to keep a copy.)")){ REG=[]; saveReg(); renderReg(); } };
 
 function confClass(c){return c>=80?"c-hi":c>=45?"c-md":"c-lo";}
+function idsHtml(ids){ if(!ids||!ids.length) return '<div class="kv">No identifying number pattern found.</div>';
+  return '<div class="idline">Identifying number(s):<br>'+ids.map(i=>'&nbsp;• <b>'+esc(i.val)+'</b> <span style="color:#5b6b7b;font-weight:400">('+i.label+')</span>').join('<br>')+'</div>'; }
 function renderResult(box, r){
-  if(r.kind==="none"){
-    box.innerHTML='<div class="result"><h3>Not recognised</h3><div class="muted">No known article clue found. Edit the text below (fix any OCR errors — especially catalog codes / model / serial) and press Identify.</div>'+idsHtml(r.ids)+'</div>';
-    return;
-  }
-  const cls=confClass(r.conf);
-  let h='<div class="result">';
-  h+='<h3>'+(r.name||'')+'<span class="conf '+cls+'">'+r.conf+'% match</span></h3>';
-  h+='<div class="art">'+r.art+'</div>';
-  if(r.vendor) h+='<div class="kv"><b>Vendor:</b> '+r.vendor+'</div>';
-  if(r.parent && r.parent!=="—") h+='<div class="kv"><b>Part of:</b> '+r.parent+'</div>';
+  if(r.kind==="none"){ box.innerHTML='<div class="result"><h3>Not recognised</h3><div class="muted">No known clue found. Fix the text below (esp. catalog code / model / serial) and press Identify.</div>'+idsHtml(r.ids)+'</div>'; return; }
+  const cls=confClass(r.conf); let h='<div class="result">';
+  h+='<h3>'+esc(r.name||'')+'<span class="conf '+cls+'">'+r.conf+'% match</span></h3>';
+  h+='<div class="art">'+esc(r.art)+'</div>';
+  if(r.vendor) h+='<div class="kv"><b>Vendor:</b> '+esc(r.vendor)+'</div>';
+  if(r.parent&&r.parent!=="—") h+='<div class="kv"><b>Part of:</b> '+esc(r.parent)+'</div>';
   h+=idsHtml(r.ids);
-  if(r.alts && r.alts.length) h+='<div class="alt">Other possibilities: '+r.alts.join(" · ")+'</div>';
-  if(r.flag) h+='<div class="flag">⚠ '+r.flag+'</div>';
+  if(r.alts&&r.alts.length) h+='<div class="alt">Other possibilities: '+r.alts.map(esc).join(" · ")+'</div>';
+  if(r.flag) h+='<div class="flag">⚠ '+esc(r.flag)+'</div>';
   h+='</div>';
   box.innerHTML=h;
-}
-function idsHtml(ids){
-  if(!ids||!ids.length) return '<div class="kv">No identifying number pattern found in the text.</div>';
-  return '<div class="idline">Identifying number(s):<br>'+ids.map(i=>'&nbsp;• <b>'+i.val+'</b> <span style="color:#5b6b7b;font-weight:400">('+i.label+')</span>').join('<br>')+'</div>';
 }
 
 function addTextCard(){
   const id=++cardN;
   const card=document.createElement("div"); card.className="card";
   card.innerHTML='<div class="top"><div class="body">'
-    +'<div class="muted">Paste or type the text you can read on the label:</div>'
+    +'<div class="muted">Paste / type the label text:</div>'
     +'<textarea id="ta'+id+'" placeholder="e.g. KSA1000ABG4  /  Model FA119HCZV1  /  S/N 21F0146283…"></textarea>'
-    +'<div class="row"><button class="primary mini" id="go'+id+'">Identify</button></div>'
+    +'<div class="row"><button class="primary mini" id="go'+id+'">Identify</button><button class="ok mini" id="add'+id+'" disabled>＋ Add to register</button></div>'
     +'<div id="res'+id+'"></div></div></div>';
   out.prepend(card);
-  document.getElementById("go"+id).onclick=()=>renderResult(document.getElementById("res"+id), identify(document.getElementById("ta"+id).value));
+  let last=null;
+  const res=document.getElementById("res"+id), addb=document.getElementById("add"+id);
+  document.getElementById("go"+id).onclick=()=>{ last=identify(document.getElementById("ta"+id).value); renderResult(res,last); addb.disabled=(last.kind==="none"); addb.textContent="＋ Add to register"; };
+  addb.onclick=()=>{ if(!last||last.kind==="none")return; addToRegister({ts:nowStr(),art:last.art,name:last.name,idnum:primaryId(last),conf:last.conf,qty:1,notes:"",src:"(typed)",flag:!!last.flag,thumb:""}); addb.textContent="✓ Added"; addb.disabled=true; };
 }
 
 async function addImage(fileObj){
@@ -223,41 +290,41 @@ async function addImage(fileObj){
     +'<div id="res'+id+'"></div>'
     +'<div class="muted" style="margin-top:8px">Text read (edit if wrong, then Identify):</div>'
     +'<textarea id="ta'+id+'"></textarea>'
-    +'<div class="row"><button class="primary mini" id="go'+id+'">Identify</button></div>'
+    +'<div class="row"><button class="primary mini" id="go'+id+'">Identify</button><button class="ok mini" id="add'+id+'" disabled>＋ Add to register</button></div>'
     +'</div></div>';
   out.prepend(card);
-  const cv=document.getElementById("cv"+id), ctx=cv.getContext("2d");
-  let rot=0;
+  const cv=document.getElementById("cv"+id), ctx=cv.getContext("2d"); let rot=0;
   function draw(){ const w=img.naturalWidth,h=img.naturalHeight; if(rot%180===0){cv.width=w;cv.height=h;}else{cv.width=h;cv.height=w;}
     ctx.save(); ctx.translate(cv.width/2,cv.height/2); ctx.rotate(rot*Math.PI/180); ctx.drawImage(img,-w/2,-h/2); ctx.restore(); }
   draw();
-  const st=document.getElementById("st"+id), ta=document.getElementById("ta"+id), res=document.getElementById("res"+id);
-  document.getElementById("go"+id).onclick=()=>renderResult(res, identify(ta.value));
+  function thumbURL(){ const m=240,s=Math.min(1,m/Math.max(cv.width,cv.height)); const c=document.createElement("canvas"); c.width=Math.round(cv.width*s); c.height=Math.round(cv.height*s); c.getContext("2d").drawImage(cv,0,0,c.width,c.height); return c.toDataURL("image/jpeg",0.6); }
+  const st=document.getElementById("st"+id), ta=document.getElementById("ta"+id), res=document.getElementById("res"+id), addb=document.getElementById("add"+id);
+  let last=null;
+  function doId(){ last=identify(ta.value); renderResult(res,last); addb.disabled=(last.kind==="none"); addb.textContent="＋ Add to register"; }
+  document.getElementById("go"+id).onclick=doId;
   document.getElementById("rot"+id).onclick=()=>{rot=(rot+90)%360;draw();};
   document.getElementById("ocr"+id).onclick=()=>runOCR();
+  addb.onclick=()=>{ if(!last||last.kind==="none")return; addToRegister({ts:nowStr(),art:last.art,name:last.name,idnum:primaryId(last),conf:last.conf,qty:1,notes:"",src:fileObj.name||"photo",flag:!!last.flag,thumb:thumbURL()}); addb.textContent="✓ Added"; addb.disabled=true; };
   async function runOCR(){
     if(!window.Tesseract){ st.textContent="OCR engine not loaded (no internet?). Type the label text below and press Identify."; return; }
-    st.textContent="Reading label… (first run downloads the OCR engine, ~10s)";
-    try{
-      const {data}=await Tesseract.recognize(cv,'eng',{tessedit_pageseg_mode:6});
-      ta.value=(data.text||"").trim();
-      st.textContent="Read with ~"+Math.round(data.confidence||0)+"% OCR confidence. Check the text, then results:";
-      renderResult(res, identify(ta.value));
+    st.textContent="Reading label… (first run downloads the engine, ~10s)";
+    try{ const {data}=await Tesseract.recognize(cv,'eng',{tessedit_pageseg_mode:6}); ta.value=(data.text||"").trim();
+      st.textContent="Read with ~"+Math.round(data.confidence||0)+"% OCR confidence. Check text, then Identify / Add:"; doId();
     }catch(err){ st.textContent="OCR failed ("+err.message+"). Type the label text below and press Identify."; }
   }
   runOCR();
 }
 
-/* engine status + reference table */
+/* engine status + reference table + initial register */
 (function(){
   const e=document.getElementById("engine");
-  if(window.Tesseract) e.textContent="OCR engine ready.";
-  else window.addEventListener("load",()=>{ e.textContent= window.Tesseract? "OCR engine ready." : "OCR engine unavailable — you can still identify from typed text."; });
+  const setE=()=>e.textContent= window.Tesseract? "OCR engine ready." : "OCR engine unavailable — you can still identify from typed text.";
+  if(window.Tesseract) setE(); else window.addEventListener("load",setE);
   const tb=document.querySelector("#kbtable tbody");
   const rows=[
-    ["Fan Wall Unit (AHU)","FWU400_V02_VER_1_A","Vertiv","Model FA119HCZV1 · P/N F0146283 · serial 21F0146283…"],
+    ["Fan Wall Unit (AHU)","FWU400_V02_VER_1_A","Vertiv","FA119HCZV1 · P/N F0146283 · serial 21F0146283…"],
     ["Generator","GEN2000_V01_CUM_16","Cummins","'Acoustic Genset Enclosure' · SK8E‑001‑… · genset serial e.g. C26H036981"],
-    ["Kiosk Transformer","KTX2250_V01_SCH_58","Schneider","AS/NZS 62271.202 · 'Kiosk/Substation' · enclosure serial AC2550100xx"],
+    ["Kiosk Transformer","KTX2250_V01_SCH_58","Schneider","AS/NZS 62271.202 · 'Kiosk/Substation' · serial AC2550100xx"],
     ["Hybrid Dry Cooler","HRU3200_V01_BAC_26_A","BAC","HXV‑…QA‑P · factory no 55606/… · 'Hybrid dry cooler'"],
     ["Cooling Distribution Unit","CDU1000","Vertiv","XDU1350 · 'CDU' · Liebert"],
     ["Water‑Cooled Chiller","WCC5800","JCI","'Water cooled chiller'"],
@@ -270,6 +337,7 @@ async function addImage(fileObj){
     ["63A Inrow Tap‑Off ⚠","TOB63 (not loaded)","Schneider","KSB63… — needs an article created"],
   ];
   tb.innerHTML=rows.map(r=>"<tr><td>"+r[0]+"</td><td><code>"+r[1]+"</code></td><td>"+r[2]+"</td><td>"+r[3]+"</td></tr>").join("");
+  renderReg();
 })();
 </script>
 </body>
