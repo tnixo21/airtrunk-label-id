@@ -77,6 +77,16 @@
     <button id="pasteBtn" class="mini">＋ Identify from typed text</button>
     <span class="muted" id="engine">Loading OCR engine…</span>
   </div>
+  <div id="camPanel" class="card" style="display:none">
+    <div style="padding:12px">
+      <video id="camVid" playsinline autoplay muted style="width:100%;max-height:60vh;background:#000;border-radius:8px"></video>
+      <div class="row">
+        <button id="capBtn" class="primary">◉ Capture</button>
+        <button id="camClose">Close camera</button>
+        <span class="muted" id="camMsg"></span>
+      </div>
+    </div>
+  </div>
   <div id="out"></div>
 
   <!-- Register -->
@@ -187,7 +197,7 @@ function addToRegister(item){ REG.push(item); saveReg(); renderReg(); }
 function renderReg(){
   document.getElementById("regCount").textContent=REG.length;
   const body=document.getElementById("regBody");
-  if(!REG.length){ body.innerHTML='<div class="empty">Nothing logged yet. Identify a label, then press “Add to register”.</div>'; return; }
+  if(!REG.length){ body.innerHTML='<div class="empty">Nothing logged yet — every photo you identify is saved here automatically, then Export.</div>'; return; }
   let h='<div style="overflow-x:auto"><table id="regtbl"><thead><tr><th>#</th><th>Photo</th><th>Article no.</th><th>Description</th><th>Identifying no.</th><th>Conf.</th><th>Qty</th><th>Location / notes</th><th>Time</th><th></th></tr></thead><tbody>';
   REG.forEach((r,i)=>{
     h+='<tr>'
@@ -239,9 +249,27 @@ const out=document.getElementById("out"), drop=document.getElementById("drop"), 
 let cardN=0;
 drop.onclick=()=>file.click();
 file.onchange=e=>{ [...e.target.files].forEach(addImage); file.value=""; };
+/* in-app live camera (real capture via getUserMedia) */
 const cam=document.getElementById("cam");
-document.getElementById("camBtn").onclick=()=>cam.click();
 cam.onchange=e=>{ [...e.target.files].forEach(addImage); cam.value=""; };
+const camPanel=document.getElementById("camPanel"), camVid=document.getElementById("camVid"), camMsg=document.getElementById("camMsg");
+let camStream=null;
+document.getElementById("camBtn").onclick=openCamera;
+async function openCamera(){
+  if(!navigator.mediaDevices||!navigator.mediaDevices.getUserMedia){ cam.click(); return; }
+  try{
+    camStream=await navigator.mediaDevices.getUserMedia({video:{facingMode:{ideal:"environment"}},audio:false});
+    camVid.srcObject=camStream; camPanel.style.display="block"; camMsg.textContent="Point at the label, then Capture."; camPanel.scrollIntoView({behavior:"smooth",block:"center"});
+  }catch(err){ cam.click(); } /* permission denied / unavailable -> native camera picker */
+}
+function closeCamera(){ if(camStream){camStream.getTracks().forEach(t=>t.stop());camStream=null;} camPanel.style.display="none"; }
+document.getElementById("camClose").onclick=closeCamera;
+document.getElementById("capBtn").onclick=()=>{
+  if(!camStream)return; const w=camVid.videoWidth,h=camVid.videoHeight; if(!w){camMsg.textContent="Camera still starting…";return;}
+  const c=document.createElement("canvas"); c.width=w;c.height=h; c.getContext("2d").drawImage(camVid,0,0,w,h);
+  const im=new Image(); im.onload=()=>addImageEl(im,"camera"); im.src=c.toDataURL("image/jpeg",0.85);
+  camMsg.textContent="Captured ✓ — take another, or Close.";
+};
 ["dragover","dragenter"].forEach(ev=>drop.addEventListener(ev,e=>{e.preventDefault();drop.classList.add("hot");}));
 ["dragleave","drop"].forEach(ev=>drop.addEventListener(ev,e=>{e.preventDefault();drop.classList.remove("hot");}));
 drop.addEventListener("drop",e=>{ [...e.dataTransfer.files].filter(f=>f.type.startsWith("image/")).forEach(addImage); });
@@ -268,25 +296,34 @@ function renderResult(box, r){
   box.innerHTML=h;
 }
 
+function upsertRegister(rid, data){
+  let it=REG.find(x=>x._rid===rid);
+  if(it){ Object.assign(it,data); } else { it=Object.assign({_rid:rid,ts:nowStr(),qty:1,notes:""},data); REG.push(it); }
+  saveReg(); renderReg();
+}
+
 function addTextCard(){
-  const id=++cardN;
+  const id=++cardN, rid="c"+id;
   const card=document.createElement("div"); card.className="card";
   card.innerHTML='<div class="top"><div class="body">'
     +'<div class="muted">Paste / type the label text:</div>'
     +'<textarea id="ta'+id+'" placeholder="e.g. KSA1000ABG4  /  Model FA119HCZV1  /  S/N 21F0146283…"></textarea>'
-    +'<div class="row"><button class="primary mini" id="go'+id+'">Identify</button><button class="ok mini" id="add'+id+'" disabled>＋ Add to register</button></div>'
+    +'<div class="row"><button class="primary mini" id="go'+id+'">Identify</button><span class="muted" id="sv'+id+'"></span></div>'
     +'<div id="res'+id+'"></div></div></div>';
   out.prepend(card);
-  let last=null;
-  const res=document.getElementById("res"+id), addb=document.getElementById("add"+id);
-  document.getElementById("go"+id).onclick=()=>{ last=identify(document.getElementById("ta"+id).value); renderResult(res,last); addb.disabled=(last.kind==="none"); addb.textContent="＋ Add to register"; };
-  addb.onclick=()=>{ if(!last||last.kind==="none")return; addToRegister({ts:nowStr(),art:last.art,name:last.name,idnum:primaryId(last),conf:last.conf,qty:1,notes:"",src:"(typed)",flag:!!last.flag,thumb:""}); addb.textContent="✓ Added"; addb.disabled=true; };
+  const res=document.getElementById("res"+id), sv=document.getElementById("sv"+id);
+  document.getElementById("go"+id).onclick=()=>{ const r=identify(document.getElementById("ta"+id).value); renderResult(res,r);
+    upsertRegister(rid,{thumb:"",art:(r.kind==="none"?"(unidentified)":r.art),name:r.name||"",idnum:primaryId(r),conf:(r.kind==="none"?null:r.conf),src:"(typed)",flag:!!r.flag});
+    sv.textContent="✓ saved to register"; };
 }
 
 async function addImage(fileObj){
-  const id=++cardN;
   const url=URL.createObjectURL(fileObj);
   const img=new Image(); await new Promise(r=>{img.onload=r;img.src=url;});
+  addImageEl(img, fileObj.name||"photo");
+}
+function addImageEl(img, srcName){
+  const id=++cardN, rid="c"+id;
   const card=document.createElement("div"); card.className="card";
   card.innerHTML='<div class="top">'
     +'<div><div class="thumb"><canvas id="cv'+id+'"></canvas></div>'
@@ -295,7 +332,7 @@ async function addImage(fileObj){
     +'<div id="res'+id+'"></div>'
     +'<div class="muted" style="margin-top:8px">Text read (edit if wrong, then Identify):</div>'
     +'<textarea id="ta'+id+'"></textarea>'
-    +'<div class="row"><button class="primary mini" id="go'+id+'">Identify</button><button class="ok mini" id="add'+id+'" disabled>＋ Add to register</button></div>'
+    +'<div class="row"><button class="primary mini" id="go'+id+'">Identify</button><span class="muted" id="sv'+id+'"></span></div>'
     +'</div></div>';
   out.prepend(card);
   const cv=document.getElementById("cv"+id), ctx=cv.getContext("2d"); let rot=0;
@@ -303,19 +340,19 @@ async function addImage(fileObj){
     ctx.save(); ctx.translate(cv.width/2,cv.height/2); ctx.rotate(rot*Math.PI/180); ctx.drawImage(img,-w/2,-h/2); ctx.restore(); }
   draw();
   function thumbURL(){ const m=240,s=Math.min(1,m/Math.max(cv.width,cv.height)); const c=document.createElement("canvas"); c.width=Math.round(cv.width*s); c.height=Math.round(cv.height*s); c.getContext("2d").drawImage(cv,0,0,c.width,c.height); return c.toDataURL("image/jpeg",0.6); }
-  const st=document.getElementById("st"+id), ta=document.getElementById("ta"+id), res=document.getElementById("res"+id), addb=document.getElementById("add"+id);
-  let last=null;
-  function doId(){ last=identify(ta.value); renderResult(res,last); addb.disabled=(last.kind==="none"); addb.textContent="＋ Add to register"; }
+  const st=document.getElementById("st"+id), ta=document.getElementById("ta"+id), res=document.getElementById("res"+id), sv=document.getElementById("sv"+id);
+  function doId(){ const r=identify(ta.value); renderResult(res,r);
+    upsertRegister(rid,{thumb:thumbURL(),art:(r.kind==="none"?"(unidentified)":r.art),name:r.name||"",idnum:primaryId(r),conf:(r.kind==="none"?null:r.conf),src:srcName,flag:!!r.flag});
+    sv.textContent="✓ saved to register"; }
   document.getElementById("go"+id).onclick=doId;
   document.getElementById("rot"+id).onclick=()=>{rot=(rot+90)%360;draw();};
   document.getElementById("ocr"+id).onclick=()=>runOCR();
-  addb.onclick=()=>{ if(!last||last.kind==="none")return; addToRegister({ts:nowStr(),art:last.art,name:last.name,idnum:primaryId(last),conf:last.conf,qty:1,notes:"",src:fileObj.name||"photo",flag:!!last.flag,thumb:thumbURL()}); addb.textContent="✓ Added"; addb.disabled=true; };
   async function runOCR(){
-    if(!window.Tesseract){ st.textContent="OCR engine not loaded (no internet?). Type the label text below and press Identify."; return; }
+    if(!window.Tesseract){ st.textContent="OCR engine not loaded (no internet?). Type the label text below and press Identify."; upsertRegister(rid,{thumb:thumbURL(),art:"(unidentified)",name:"",idnum:"",conf:null,src:srcName,flag:false}); return; }
     st.textContent="Reading label… (first run downloads the engine, ~10s)";
     try{ const {data}=await Tesseract.recognize(cv,'eng',{tessedit_pageseg_mode:6}); ta.value=(data.text||"").trim();
-      st.textContent="Read with ~"+Math.round(data.confidence||0)+"% OCR confidence. Check text, then Identify / Add:"; doId();
-    }catch(err){ st.textContent="OCR failed ("+err.message+"). Type the label text below and press Identify."; }
+      st.textContent="Read with ~"+Math.round(data.confidence||0)+"% OCR confidence. Check text, then Identify:"; doId();
+    }catch(err){ st.textContent="OCR failed ("+err.message+"). Type the label text below and press Identify."; upsertRegister(rid,{thumb:thumbURL(),art:"(unidentified)",name:"",idnum:"",conf:null,src:srcName,flag:false}); }
   }
   runOCR();
 }
