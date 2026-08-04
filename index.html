@@ -174,7 +174,7 @@ const ARTICLES = [
   {art:"WCC1050", name:"1050kW Water‑Cooled Load Bank", vendor:"Generator Power",
    rules:[{re:/VPS60W/i,w:95},{kw:["LOAD BANK","LOADBANK"],w:75}]},
   {art:"PTU_V01_VER_47_A", name:"1850kW Power Train Unit (IT PTU)", vendor:"Vertiv",
-   rules:[{re:/A-04-\w+-PTU/i,w:90},{kw:["POWER TRAIN"],w:60},{kw:["PTU"],w:35}]},
+   rules:[{re:/A-04-\w+-PTU/i,w:90},{re:/SEPU\s?\d{6}/i,w:80},{kw:["POWER TRAIN"],w:60},{kw:["ALTERNATIVE TECHNOLOGY"],w:45},{kw:["PTU"],w:35}]},
   {art:"HRU3200_V01_BAC_26_A", name:"3850kW Hybrid Dry Cooler (HDC)", vendor:"BAC (Baltimore Aircoil)",
    rules:[{re:/HXV[-\s]?\d/i,w:95},{re:/\b55606\b/,w:70},{kw:["HYBRID DRY","DRY COOLER"],w:70},{kw:["BALTIMORE","BAC"],w:25}]},
 ];
@@ -185,7 +185,8 @@ const ARTICLES = [
 const SERIAL_RX = {
   "FWU400_V02_VER_1_A": /21F\d{7}[0-9A-Z]{10}/,
   "GEN2000_V01_CUM_16": /[A-Z]\d{2}H\d{6}/,
-  "KTX2250_V01_SCH_58": /AC\d{9,10}/
+  "KTX2250_V01_SCH_58": /AC\d{9,10}/,
+  "PTU_V01_VER_47_A": /SEPU\d{6,7}/   /* PTU e-house asset no. stencilled on the unit, e.g. SEPU2640595 */
 };
 const SERIAL_REQUIRED = new Set(Object.keys(SERIAL_RX));
 /* Secondary identifiers (for components / non-serialised items). NO bare P/N here. */
