@@ -70,8 +70,10 @@
     <div><b>Click to choose / take photos</b> or drag &amp; drop</div>
     <div class="muted" style="margin-top:4px">JPG/PNG · multiple at once · nothing is uploaded</div>
     <input id="file" type="file" accept="image/*" multiple hidden>
+    <input id="cam" type="file" accept="image/*" capture="environment" hidden>
   </div>
   <div class="row">
+    <button id="camBtn" class="primary">📸 Take a photo</button>
     <button id="pasteBtn" class="mini">＋ Identify from typed text</button>
     <span class="muted" id="engine">Loading OCR engine…</span>
   </div>
@@ -237,6 +239,9 @@ const out=document.getElementById("out"), drop=document.getElementById("drop"), 
 let cardN=0;
 drop.onclick=()=>file.click();
 file.onchange=e=>{ [...e.target.files].forEach(addImage); file.value=""; };
+const cam=document.getElementById("cam");
+document.getElementById("camBtn").onclick=()=>cam.click();
+cam.onchange=e=>{ [...e.target.files].forEach(addImage); cam.value=""; };
 ["dragover","dragenter"].forEach(ev=>drop.addEventListener(ev,e=>{e.preventDefault();drop.classList.add("hot");}));
 ["dragleave","drop"].forEach(ev=>drop.addEventListener(ev,e=>{e.preventDefault();drop.classList.remove("hot");}));
 drop.addEventListener("drop",e=>{ [...e.dataTransfer.files].filter(f=>f.type.startsWith("image/")).forEach(addImage); });
